@@ -26,7 +26,7 @@ export default function Header() {
                             Home
                         </Link>
                         <Link
-                            href="/builder/step-1"
+                            href="/builder"
                             className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide"
                         >
                             Builder
@@ -67,7 +67,7 @@ export default function Header() {
                     <Link href="/" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
                         Home
                     </Link>
-                    <Link href="/builder/step-1" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
+                    <Link href="/builder" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
                         Builder
                     </Link>
                     <Link href="/career-roadmap" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
