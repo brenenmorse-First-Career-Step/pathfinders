@@ -1,0 +1,115 @@
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
+
+// Routes that require authentication
+const protectedRoutes = [
+    '/builder',
+    '/success',
+];
+
+// Routes that should redirect to builder if already authenticated
+const authRoutes = ['/login', '/signup'];
+
+export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    try {
+        // Create a response object
+        const response = NextResponse.next({
+            request: {
+                headers: request.headers,
+            },
+        });
+
+        // Create Supabase client with proper cookie handling for middleware
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return request.cookies.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            request.cookies.set(name, value);
+                            response.cookies.set(name, value, options);
+                        });
+                    },
+                },
+            }
+        );
+
+        // Get the current user session
+        const {
+            data: { session },
+            error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError) {
+            logger.error('Middleware', sessionError, { pathname });
+        }
+
+        const isAuthenticated = !!session?.user;
+
+        logger.debug('Middleware', 'Route access check', {
+            pathname,
+            isAuthenticated,
+            userId: session?.user?.id,
+        });
+
+        // Check if the route is protected
+        const isProtectedRoute = protectedRoutes.some((route) =>
+            pathname.startsWith(route)
+        );
+
+        // Check if the route is an auth route
+        const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+
+        // Redirect to login if accessing protected route without authentication
+        if (isProtectedRoute && !isAuthenticated) {
+            logger.warn('Middleware', 'Unauthorized access attempt', {
+                pathname,
+                redirectTo: '/login',
+            });
+
+            const loginUrl = new URL('/login', request.url);
+            loginUrl.searchParams.set('redirect', pathname);
+            return NextResponse.redirect(loginUrl);
+        }
+
+        // Redirect to dashboard if accessing auth routes while authenticated
+        if (isAuthRoute && isAuthenticated) {
+            logger.info('Middleware', 'Authenticated user accessing auth route', {
+                pathname,
+                redirectTo: '/dashboard',
+                userId: session.user.id,
+            });
+
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+
+        return response;
+    } catch (error) {
+        logger.error('Middleware', error as Error, { pathname });
+        // Allow the request to continue even if middleware fails
+        return NextResponse.next();
+    }
+}
+
+// Configure which routes use this middleware
+export const config = {
+    matcher: [
+        /*
+         * Match all request paths except for the ones starting with:
+         * - api (API routes)
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         * - public files (images, etc.)
+         */
+        '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    ],
+};

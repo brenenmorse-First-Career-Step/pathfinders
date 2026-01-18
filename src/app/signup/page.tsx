@@ -1,0 +1,290 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { logger } from '@/lib/logger';
+
+export default function SignUpPage() {
+  const router = useRouter();
+  const { signUp } = useAuth();
+
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    linkedinLink: '',
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Full name validation
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Full name must be at least 2 characters';
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain uppercase, lowercase, and number';
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    // LinkedIn link validation (optional)
+    if (formData.linkedinLink && !/^https?:\/\/(www\.)?linkedin\.com\/.+/.test(formData.linkedinLink)) {
+      newErrors.linkedinLink = 'Please enter a valid LinkedIn profile URL';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setServerError('');
+
+    logger.info('Sign Up Form', 'Form submission started', {
+      email: formData.email,
+      hasLinkedin: !!formData.linkedinLink,
+    });
+
+    if (!validateForm()) {
+      logger.warn('Sign Up Form', 'Validation failed', { errors });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await signUp(
+        formData.email,
+        formData.password,
+        formData.fullName,
+        formData.linkedinLink || undefined
+      );
+
+      if (error) {
+        logger.error('Sign Up Form', error, { email: formData.email });
+        setServerError(error);
+        setLoading(false);
+        return;
+      }
+
+      logger.info('Sign Up Form', 'Sign up successful', {
+        email: formData.email,
+      });
+
+      // Redirect to builder
+      router.push('/builder/step-1');
+    } catch (error) {
+      logger.error('Sign Up Form', error as Error, { email: formData.email });
+      setServerError('An unexpected error occurred. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+
+    // Clear server error when user makes changes
+    if (serverError) {
+      setServerError('');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      <main className="flex-1 bg-gradient-hero py-12 px-4">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-2xl p-8 shadow-card">
+            <h1 className="text-3xl font-poppins font-bold text-charcoal mb-2 text-center">
+              Create Your Account
+            </h1>
+            <p className="text-gray-600 text-center mb-8">
+              Start building your professional resume
+            </p>
+
+            {serverError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-red-600 text-sm">{serverError}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name */}
+              <div>
+                <label htmlFor="fullName" className="block text-sm font-semibold text-charcoal mb-2">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.fullName
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
+                    }`}
+                  placeholder="John Doe"
+                  disabled={loading}
+                />
+                {errors.fullName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-semibold text-charcoal mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.email
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
+                    }`}
+                  placeholder="john@example.com"
+                  disabled={loading}
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-semibold text-charcoal mb-2">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.password
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
+                    }`}
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Must be at least 8 characters with uppercase, lowercase, and number
+                </p>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-charcoal mb-2">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.confirmPassword
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
+                    }`}
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                )}
+              </div>
+
+              {/* LinkedIn Profile (Optional) */}
+              <div>
+                <label htmlFor="linkedinLink" className="block text-sm font-semibold text-charcoal mb-2">
+                  LinkedIn Profile <span className="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                <input
+                  type="url"
+                  id="linkedinLink"
+                  name="linkedinLink"
+                  value={formData.linkedinLink}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.linkedinLink
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
+                    }`}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                  disabled={loading}
+                />
+                {errors.linkedinLink && (
+                  <p className="mt-1 text-sm text-red-600">{errors.linkedinLink}</p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full px-6 py-3 bg-career-blue text-white font-semibold rounded-xl hover:bg-career-blue-dark transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+            </form>
+
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link href="/login" className="text-career-blue font-semibold hover:underline">
+                Sign In
+              </Link>
+            </p>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
