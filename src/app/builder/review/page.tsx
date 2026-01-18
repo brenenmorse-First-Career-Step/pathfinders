@@ -146,7 +146,7 @@ export default function ReviewPage() {
               experiences={profile.experiences}
               certifications={profile.certifications}
               photoUrl={profile.photoUrl}
-              showPhoto={profile.showPhotoOnResume}
+              showPhoto={false}
             />
           </div>
         </div>

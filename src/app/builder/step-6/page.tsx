@@ -16,7 +16,6 @@ export default function Step6Page() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(profile.photoUrl);
-  const [showPhotoOnResume, setShowPhotoOnResume] = useState(profile.showPhotoOnResume);
   const [settings, setSettings] = useState(
     profile.photoSettings || {
       brightness: 100,
@@ -128,7 +127,6 @@ export default function Step6Page() {
   const handleNext = () => {
     updateProfile({
       photoUrl,
-      showPhotoOnResume,
       photoSettings: settings,
     });
 
@@ -407,27 +405,13 @@ export default function Step6Page() {
           <div className="sticky top-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-charcoal">Preview</h2>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700">
-                  Show on resume
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showPhotoOnResume}
-                    onChange={(e) => setShowPhotoOnResume(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-career-blue/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-career-blue"></div>
-                </label>
-              </div>
             </div>
 
             <div className="transform scale-[0.6] origin-top lg:scale-[0.85] xl:scale-100 transition-transform">
               <LiveResumePreview
                 {...profile}
                 photoUrl={photoUrl}
-                showPhoto={showPhotoOnResume}
+                showPhoto={false}
                 variant="document"
               />
             </div>
