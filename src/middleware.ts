@@ -5,7 +5,9 @@ import { logger } from '@/lib/logger';
 
 // Routes that require authentication
 const protectedRoutes = [
-    '/builder',
+    '/builder/step',
+    '/builder/review',
+    '/dashboard',
     '/success',
 ];
 

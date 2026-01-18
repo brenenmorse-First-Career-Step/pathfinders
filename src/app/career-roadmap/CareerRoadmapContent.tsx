@@ -5,6 +5,20 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import PaymentGate from '@/components/PaymentGate';
 import type { RoadmapContent } from '@/types/roadmap';
 import Image from 'next/image';
+import {
+    Sparkles,
+    Target,
+    Wrench,
+    List,
+    Library,
+    Rocket,
+    Tag,
+    Download,
+    Clock,
+    Hash,
+    BookOpen
+} from 'lucide-react';
+import { Button } from '@/components/ui';
 
 export default function CareerRoadmapContent() {
     const router = useRouter();
@@ -215,7 +229,10 @@ export default function CareerRoadmapContent() {
                                     Generating Your Roadmap...
                                 </span>
                             ) : (
-                                '✨ Generate Career Roadmap'
+                                <span className="flex items-center justify-center gap-2">
+                                    <Sparkles className="w-5 h-5" />
+                                    Generate Career Roadmap
+                                </span>
                             )}
                         </button>
                     </div>
@@ -274,7 +291,10 @@ export default function CareerRoadmapContent() {
                             {/* Skills */}
                             {roadmap.skills && roadmap.skills.length > 0 && (
                                 <div className="mb-8">
-                                    <h3 className="text-xl font-semibold text-charcoal mb-4">🎯 Key Skills to Learn</h3>
+                                    <h3 className="text-xl font-semibold text-charcoal mb-4 flex items-center gap-2">
+                                        <Target className="w-6 h-6 text-career-blue" />
+                                        Key Skills to Learn
+                                    </h3>
                                     <div className="flex flex-wrap gap-3">
                                         {roadmap.skills.map((skill, index) => (
                                             <span
@@ -291,7 +311,10 @@ export default function CareerRoadmapContent() {
                             {/* Tools */}
                             {roadmap.tools && roadmap.tools.length > 0 && (
                                 <div className="mb-8">
-                                    <h3 className="text-xl font-semibold text-charcoal mb-4">🛠️ Tools & Software</h3>
+                                    <h3 className="text-xl font-semibold text-charcoal mb-4 flex items-center gap-2">
+                                        <Wrench className="w-6 h-6 text-step-green" />
+                                        Tools & Software
+                                    </h3>
                                     <div className="flex flex-wrap gap-3">
                                         {roadmap.tools.map((tool, index) => (
                                             <span
@@ -309,8 +332,9 @@ export default function CareerRoadmapContent() {
                         {/* Steps */}
                         {roadmap.steps && roadmap.steps.length > 0 && (
                             <div className="bg-white rounded-2xl shadow-lg p-8">
-                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6">
-                                    📋 Step-by-Step Plan
+                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6 flex items-center gap-3">
+                                    <List className="w-7 h-7 text-career-blue" />
+                                    Step-by-Step Plan
                                 </h2>
                                 <div className="space-y-6">
                                     {roadmap.steps.map((step, index) => (
@@ -328,7 +352,10 @@ export default function CareerRoadmapContent() {
                                                     </div>
                                                     <p className="text-gray-600 mb-2">{step.description}</p>
                                                     <div className="flex items-center gap-4 text-sm">
-                                                        <span className="text-career-blue font-medium">⏱️ {step.timeline}</span>
+                                                        <span className="text-career-blue font-medium flex items-center gap-1">
+                                                            <Clock className="w-4 h-4" />
+                                                            {step.timeline}
+                                                        </span>
                                                         {step.hashtags && step.hashtags.length > 0 && (
                                                             <span className="text-gray-500">{step.hashtags.join(' ')}</span>
                                                         )}
@@ -353,8 +380,9 @@ export default function CareerRoadmapContent() {
                         {/* Courses */}
                         {roadmap.courses && roadmap.courses.length > 0 && (
                             <div className="bg-white rounded-2xl shadow-lg p-8">
-                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6">
-                                    📚 Free Online Courses
+                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6 flex items-center gap-3">
+                                    <BookOpen className="w-7 h-7 text-career-blue" />
+                                    Free Online Courses
                                 </h2>
                                 <div className="grid md:grid-cols-2 gap-6">
                                     {roadmap.courses.map((course, index) => (
@@ -384,8 +412,9 @@ export default function CareerRoadmapContent() {
                         {/* Projects */}
                         {roadmap.projects && roadmap.projects.length > 0 && (
                             <div className="bg-white rounded-2xl shadow-lg p-8">
-                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6">
-                                    🚀 Starter Projects
+                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6 flex items-center gap-3">
+                                    <Rocket className="w-7 h-7 text-optimism-orange" />
+                                    Starter Projects
                                 </h2>
                                 <div className="space-y-4">
                                     {roadmap.projects.map((project, index) => (
@@ -414,8 +443,9 @@ export default function CareerRoadmapContent() {
                         {/* Hashtags */}
                         {roadmap.hashtags && roadmap.hashtags.length > 0 && (
                             <div className="bg-white rounded-2xl shadow-lg p-8">
-                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6">
-                                    🏷️ Community & Resources
+                                <h2 className="text-2xl font-poppins font-bold text-charcoal mb-6 flex items-center gap-3">
+                                    <Hash className="w-7 h-7 text-gray-500" />
+                                    Community & Resources
                                 </h2>
                                 <div className="flex flex-wrap gap-3">
                                     {roadmap.hashtags.map((hashtag, index) => (
@@ -435,9 +465,14 @@ export default function CareerRoadmapContent() {
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="px-8 py-4 bg-step-green text-white font-semibold text-lg rounded-xl hover:bg-step-green/90 transition-all duration-200 active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-8 py-4 bg-step-green text-white font-semibold text-lg rounded-xl hover:bg-step-green/90 transition-all duration-200 active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                {saving ? 'Saving...' : '💾 Save Roadmap to Dashboard'}
+                                {saving ? 'Saving...' : (
+                                    <>
+                                        <Download className="w-5 h-5" />
+                                        Save Roadmap to Dashboard
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>

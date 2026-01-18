@@ -93,7 +93,7 @@ export default function DashboardPage() {
                 </Link>
 
                 <Link
-                    href="/career-roadmap"
+                    href={hasPaidRoadmap ? '/dashboard/roadmaps' : '/career-roadmap'}
                     className="bg-gradient-to-br from-step-green to-step-green/80 text-white rounded-2xl p-8 hover:shadow-lg transition-all duration-200 active:scale-[0.98] relative overflow-hidden"
                 >
                     {!hasPaidRoadmap && (
