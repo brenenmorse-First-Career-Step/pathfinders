@@ -1,7 +1,6 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { createBrowserClient } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Roadmap } from '@/types/roadmap';

@@ -77,9 +77,9 @@ export default function CareerRoadmapPage() {
             setRoadmap(data.roadmap);
             setInfographicUrl(data.infographicUrl);
             setMilestoneGraphicUrl(data.milestoneGraphicUrl);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error generating roadmap:', err);
-            setError(err.message || 'Failed to generate roadmap');
+            setError((err instanceof Error ? err.message : 'Failed to generate roadmap');
         } finally {
             setGenerating(false);
         }
@@ -113,9 +113,9 @@ export default function CareerRoadmapPage() {
 
             setSuccessMessage('Roadmap saved successfully! View it in your dashboard.');
             setTimeout(() => setSuccessMessage(null), 5000);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error saving roadmap:', err);
-            setError(err.message || 'Failed to save roadmap');
+            setError((err instanceof Error ? err.message : 'Failed to save roadmap');
         } finally {
             setSaving(false);
         }
@@ -444,3 +444,4 @@ export default function CareerRoadmapPage() {
         </div>
     );
 }
+

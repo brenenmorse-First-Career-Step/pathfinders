@@ -120,7 +120,7 @@ IMPORTANT:
         // Generate infographic with DALL-E
         const infographicPrompt = `Professional left-to-right career timeline infographic for ${careerGoal}. 
 Modern, clean design with milestone markers. 
-Include key steps: ${roadmapContent.steps?.slice(0, 5).map((s: any) => s.title).join(', ')}.
+Include key steps: ${roadmapContent.steps?.slice(0, 5).map((s: { title: string }) => s.title).join(', ')}.
 Professional color scheme, minimalist style, horizontal flow.
 Title: "${careerGoal} Career Roadmap"`;
 
@@ -157,12 +157,13 @@ Professional, motivational design. Modern color palette.`;
             infographicUrl,
             milestoneGraphicUrl,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error generating roadmap:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to generate roadmap';
         return NextResponse.json(
             {
                 success: false,
-                error: error.message || 'Failed to generate roadmap',
+                error: errorMessage,
             },
             { status: 500 }
         );

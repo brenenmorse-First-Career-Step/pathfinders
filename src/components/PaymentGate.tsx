@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 
-interface PaymentGateProps {
-    onPaymentSuccess?: () => void;
-}
 
-export default function PaymentGate({ onPaymentSuccess }: PaymentGateProps) {
+
+export default function PaymentGate() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -35,9 +33,9 @@ export default function PaymentGate({ onPaymentSuccess }: PaymentGateProps) {
             } else {
                 throw new Error('No checkout URL returned');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Payment error:', err);
-            setError(err.message || 'Failed to start payment');
+            setError((err instanceof Error ? err.message : 'Failed to start payment');
         } finally {
             setLoading(false);
         }
@@ -141,3 +139,4 @@ export default function PaymentGate({ onPaymentSuccess }: PaymentGateProps) {
         </div>
     );
 }
+

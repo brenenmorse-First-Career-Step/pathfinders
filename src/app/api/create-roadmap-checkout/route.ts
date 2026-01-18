@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: '2025-12-15.clover',
 });
 
-export async function POST(request: NextRequest) {
+export async function POST() {
     try {
         const supabase = await createServerClient();
         const {
@@ -62,11 +62,12 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json({ sessionId: checkoutSession.id, url: checkoutSession.url });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating checkout session:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to create checkout session' },
+            { error: (error instanceof Error ? error.message : 'Failed to create checkout session' },
             { status: 500 }
         );
     }
 }
+

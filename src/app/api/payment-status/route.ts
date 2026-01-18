@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 
 // GET - Check if user has paid
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         const supabase = await createServerClient();
         const {
@@ -36,11 +36,12 @@ export async function GET(request: NextRequest) {
             paidAt: data?.paid_at || null,
             amount: data?.payment_amount || null,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in payment status:', error);
         return NextResponse.json(
-            { hasPaid: false, error: error.message },
+            { hasPaid: false, error: (error instanceof Error ? error.message : 'Unknown error') },
             { status: 500 }
         );
     }
 }
+

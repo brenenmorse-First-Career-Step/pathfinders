@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({ roadmaps: data });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in GET roadmaps:', error);
         return NextResponse.json(
-            { error: error.message },
+            { error: (error instanceof Error ? error.message : 'Unknown error') },
             { status: 500 }
         );
     }
@@ -88,11 +88,12 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ roadmap: data });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in POST roadmap:', error);
         return NextResponse.json(
-            { error: error.message },
+            { error: (error instanceof Error ? error.message : 'Unknown error') },
             { status: 500 }
         );
     }
 }
+
