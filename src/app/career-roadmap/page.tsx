@@ -79,7 +79,8 @@ export default function CareerRoadmapPage() {
             setMilestoneGraphicUrl(data.milestoneGraphicUrl);
         } catch (err: unknown) {
             console.error('Error generating roadmap:', err);
-            setError((err instanceof Error ? err.message : 'Failed to generate roadmap');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to generate roadmap';
+            setError(errorMessage);
         } finally {
             setGenerating(false);
         }
@@ -115,7 +116,8 @@ export default function CareerRoadmapPage() {
             setTimeout(() => setSuccessMessage(null), 5000);
         } catch (err: unknown) {
             console.error('Error saving roadmap:', err);
-            setError((err instanceof Error ? err.message : 'Failed to save roadmap');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to save roadmap';
+            setError(errorMessage);
         } finally {
             setSaving(false);
         }
@@ -150,7 +152,7 @@ export default function CareerRoadmapPage() {
                             Get personalized career guidance with professional infographics and curated learning resources
                         </p>
                     </div>
-                    <PaymentGate onPaymentSuccess={checkPaymentStatus} />
+                    <PaymentGate />
                 </div>
             </div>
         );
