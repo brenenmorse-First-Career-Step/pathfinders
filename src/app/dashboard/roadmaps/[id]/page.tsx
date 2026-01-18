@@ -22,6 +22,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
         if (id) {
             fetchRoadmap();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, user]);
 
     const fetchRoadmap = async () => {

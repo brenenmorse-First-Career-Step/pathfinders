@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
                     // Handle resume payment (existing logic)
                     // Fetch user's profile data
-                    const { data: profile, error: profileError } = await supabase
+                    const { data: _profile, error: profileError } = await supabase
                         .from('profile')
                         .select('*')
                         .eq('user_id', userId)

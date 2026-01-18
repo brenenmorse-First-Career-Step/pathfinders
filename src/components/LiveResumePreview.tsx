@@ -66,6 +66,10 @@ export function LiveResumePreview({
     isPaid = false,
     variant = 'preview',
 }: LiveResumePreviewProps) {
+    // Unused but kept for potential future use
+    const _photoUrl = photoUrl;
+    const _showPhoto = showPhoto;
+
     const containerClasses = variant === 'preview'
         ? "relative bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200 max-w-3xl"
         : "relative bg-white p-8 w-full h-full";
