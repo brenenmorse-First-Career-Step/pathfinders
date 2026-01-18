@@ -10,25 +10,46 @@ export default function DashboardPage() {
     const { user } = useAuth();
     const { profile } = useProfile();
     const [resumeCount, setResumeCount] = useState(0);
+    const [roadmapCount, setRoadmapCount] = useState(0);
+    const [hasPaidRoadmap, setHasPaidRoadmap] = useState(false);
 
     const fullName = user?.user_metadata?.full_name || profile?.fullName || 'User';
     const email = user?.email || '';
 
     useEffect(() => {
-        const fetchResumeCount = async () => {
+        const fetchCounts = async () => {
             if (!user) return;
 
             const supabase = createBrowserClient();
-            const { count } = await supabase
+
+            // Fetch resume count
+            const { count: resumeCountData } = await supabase
                 .from('resumes')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id)
                 .eq('status', 'paid');
 
-            setResumeCount(count || 0);
+            setResumeCount(resumeCountData || 0);
+
+            // Fetch roadmap count
+            const { count: roadmapCountData } = await supabase
+                .from('roadmaps')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+
+            setRoadmapCount(roadmapCountData || 0);
+
+            // Check roadmap payment status
+            const { data: paymentData } = await supabase
+                .from('user_payments')
+                .select('has_paid')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            setHasPaidRoadmap(paymentData?.has_paid || false);
         };
 
-        fetchResumeCount();
+        fetchCounts();
     }, [user]);
 
     return (
@@ -42,7 +63,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
                 <Link
                     href="/builder/step-1"
                     className="bg-gradient-to-br from-career-blue to-career-blue-dark text-white rounded-2xl p-8 hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
@@ -68,6 +89,26 @@ export default function DashboardPage() {
                             <p className="text-gray-600">View and manage your resumes</p>
                         </div>
                         <div className="text-4xl font-bold text-career-blue">{resumeCount}</div>
+                    </div>
+                </Link>
+
+                <Link
+                    href="/career-roadmap"
+                    className="bg-gradient-to-br from-step-green to-step-green/80 text-white rounded-2xl p-8 hover:shadow-lg transition-all duration-200 active:scale-[0.98] relative overflow-hidden"
+                >
+                    {!hasPaidRoadmap && (
+                        <div className="absolute top-3 right-3 bg-optimism-orange text-white text-xs font-bold px-3 py-1 rounded-full">
+                            $9.99
+                        </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold mb-2">Career Roadmaps</h2>
+                            <p className="text-white/90">
+                                {hasPaidRoadmap ? 'Create AI-powered roadmaps' : 'Unlock AI roadmaps'}
+                            </p>
+                        </div>
+                        <div className="text-4xl font-bold">{hasPaidRoadmap ? roadmapCount : '🔒'}</div>
                     </div>
                 </Link>
             </div>

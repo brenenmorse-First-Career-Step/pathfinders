@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
 
                 // Extract metadata
                 const userId = session.metadata?.userId;
+                const productType = session.metadata?.product_type;
 
                 if (!userId) {
                     paymentLogger.error('Missing userId in session metadata', {
@@ -60,6 +61,44 @@ export async function POST(request: NextRequest) {
                 try {
                     const supabase = createAdminClient();
 
+                    // Handle roadmap access payment
+                    if (productType === 'roadmap_access') {
+                        paymentLogger.info('Processing roadmap access payment', {
+                            userId,
+                            sessionId: session.id,
+                            amount: session.amount_total,
+                        });
+
+                        // Create or update user_payments record
+                        const { error: paymentError } = await supabase
+                            .from('user_payments')
+                            .upsert({
+                                user_id: userId,
+                                has_paid: true,
+                                payment_amount: (session.amount_total || 0) / 100, // Convert cents to dollars
+                                stripe_payment_intent_id: session.payment_intent as string,
+                                paid_at: new Date().toISOString(),
+                            }, {
+                                onConflict: 'user_id',
+                            });
+
+                        if (paymentError) {
+                            paymentLogger.error('Failed to update payment record', {
+                                error: paymentError,
+                                userId,
+                                sessionId: session.id,
+                            });
+                        } else {
+                            paymentLogger.info('Roadmap access granted successfully', {
+                                userId,
+                                sessionId: session.id,
+                            });
+                        }
+
+                        break;
+                    }
+
+                    // Handle resume payment (existing logic)
                     // Fetch user's profile data
                     const { data: profile, error: profileError } = await supabase
                         .from('profile')
