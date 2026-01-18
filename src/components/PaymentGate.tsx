@@ -35,7 +35,8 @@ export default function PaymentGate() {
             }
         } catch (err: unknown) {
             console.error('Payment error:', err);
-            setError((err instanceof Error ? err.message : 'Failed to start payment');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to start payment';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
