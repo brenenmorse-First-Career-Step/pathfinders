@@ -143,7 +143,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           .from('experiences')
           .select('*')
           .eq('user_id', user.id)
-          .order('date_created', { ascending: false });
+          .order('created_at', { ascending: false });
 
         if (experiencesError) {
           dbLogger.error(experiencesError, { context: 'loadExperiences', userId: user.id });
@@ -160,20 +160,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           dbLogger.error(certificationsError, { context: 'loadCertifications', userId: user.id });
         }
 
-        // Load user data for full name
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('full_name')
-          .eq('id', user.id)
-          .single();
-
-        if (userError) {
-          dbLogger.error(userError, { context: 'loadUser', userId: user.id });
-        }
-
         // Map database data to profile state
         const loadedProfile: ProfileData = {
-          fullName: userData?.full_name || "",
+          fullName: user.user_metadata?.full_name || "",
           email: user.email || "",
           phone: profileData?.phone || "",
           location: profileData?.location || "",
@@ -290,7 +279,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       // Update profile table if there are changes
       if (Object.keys(profileUpdates).length > 0) {
-        profileUpdates.date_updated = new Date().toISOString();
+        profileUpdates.updated_at = new Date().toISOString();
 
         const { error: profileError } = await supabase
           .from('profile')
@@ -309,23 +298,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         dbLogger.operation('UPSERT', 'profile', { userId: user.id, fields: Object.keys(profileUpdates) });
       }
 
-      // Update full name and linkedin in users table if changed
+      // Update full name and linkedin in auth metadata if changed
       if (updates.fullName !== undefined || updates.linkedin !== undefined) {
-        const userUpdates: Record<string, string> = {};
-        if (updates.fullName !== undefined) userUpdates.full_name = updates.fullName;
-        if (updates.linkedin !== undefined) userUpdates.linkedin_link = updates.linkedin;
+        const userUpdates: { data: { full_name?: string; linkedin_link?: string } } = { data: {} };
+        if (updates.fullName !== undefined) userUpdates.data.full_name = updates.fullName;
+        if (updates.linkedin !== undefined) userUpdates.data.linkedin_link = updates.linkedin;
 
-        const { error: userError } = await supabase
-          .from('users')
-          .update(userUpdates)
-          .eq('id', user.id);
+        const { error: userError } = await supabase.auth.updateUser(userUpdates);
 
         if (userError) {
           dbLogger.error(userError, { context: 'updateUser', userId: user.id });
           throw userError;
         }
 
-        dbLogger.operation('UPDATE', 'users', { userId: user.id, fields: Object.keys(userUpdates) });
+        dbLogger.operation('UPDATE', 'auth.users', { userId: user.id, fields: Object.keys(userUpdates.data) });
       }
 
       // Handle experiences updates
