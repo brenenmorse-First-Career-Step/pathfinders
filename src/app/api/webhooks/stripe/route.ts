@@ -126,7 +126,9 @@ export async function POST(request: NextRequest) {
                     }
 
                     // Use profile full_name first, then email, then fallback
-                    const userName = profile?.full_name || authUser?.email?.split('@')[0] || 'My';
+                    const userName = (profile as { full_name?: string } | null)?.full_name || 
+                                   (authUser as { email?: string } | null)?.email?.split('@')[0] || 
+                                   'My';
 
                     // CRITICAL FIX: Update ALL locked resumes to paid when payment succeeds
                     // Payment is a user-level entitlement (lifetime access), not per-resume
