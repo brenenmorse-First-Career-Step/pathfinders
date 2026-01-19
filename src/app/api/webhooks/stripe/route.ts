@@ -134,9 +134,10 @@ export async function POST(request: NextRequest) {
                     // Payment is a user-level entitlement (lifetime access), not per-resume
                     const { error: updateAllResumesError } = await supabase
                         .from('resumes')
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         .update({
                             status: 'paid',
-                        })
+                        } as any)
                         .eq('user_id', userId)
                         .eq('status', 'locked');
 
