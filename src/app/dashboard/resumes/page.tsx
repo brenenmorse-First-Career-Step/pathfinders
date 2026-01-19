@@ -25,15 +25,57 @@ export default function ResumesPage() {
     const { profile } = useProfile();
     const [resumes, setResumes] = useState<Resume[]>([]);
     const [loading, setLoading] = useState(true);
+    const [hasPaid, setHasPaid] = useState<boolean>(false);
     const [showLinkedInModal, setShowLinkedInModal] = useState(false);
     const [linkedInContent, setLinkedInContent] = useState<LinkedInContent | null>(null);
     const [generatingLinkedIn, setGeneratingLinkedIn] = useState(false);
     const [_currentResumeId, setCurrentResumeId] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchResumes();
+        if (user) {
+            fetchResumes();
+            checkPaymentStatus();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
+
+    // Refresh payment status when page becomes visible (e.g., after returning from payment)
+    useEffect(() => {
+        if (!user) return;
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                checkPaymentStatus();
+                fetchResumes();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
+    const checkPaymentStatus = async () => {
+        if (!user) return;
+
+        try {
+            const supabase = createBrowserClient();
+            const { data, error } = await supabase
+                .from('user_payments')
+                .select('has_paid')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Error checking payment status:', error);
+                return;
+            }
+
+            setHasPaid(data?.has_paid || false);
+        } catch (error) {
+            console.error('Error checking payment status:', error);
+        }
+    };
 
     const fetchResumes = async () => {
         if (!user) {
@@ -44,7 +86,6 @@ export default function ResumesPage() {
         try {
             const supabase = createBrowserClient();
             // Fetch all resumes for the user
-            // Show paid resumes prominently, but also show locked/draft for transparency
             const { data, error } = await supabase
                 .from('resumes')
                 .select('*')
@@ -57,7 +98,6 @@ export default function ResumesPage() {
             }
             
             // Show all resumes - paid, locked, and draft
-            // Users can see their progress and payment status
             setResumes(data || []);
         } catch (error) {
             console.error('Error fetching resumes:', error);
@@ -199,19 +239,22 @@ export default function ResumesPage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                                             <h3 className="text-xl font-bold text-charcoal">{resume.title}</h3>
-                                            {resume.status === 'paid' && (
+                                            {/* Check user-level payment entitlement, not resume status */}
+                                            {hasPaid ? (
                                                 <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
                                                     {resume.pdf_url ? 'Ready to Download' : 'Generating PDF...'}
                                                 </span>
-                                            )}
-                                            {resume.status === 'locked' && (
+                                            ) : resume.status === 'locked' ? (
                                                 <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
                                                     Payment Required
                                                 </span>
-                                            )}
-                                            {resume.status === 'draft' && (
+                                            ) : resume.status === 'draft' ? (
                                                 <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
                                                     Draft
+                                                </span>
+                                            ) : (
+                                                <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
+                                                    {resume.pdf_url ? 'Ready to Download' : 'Generating PDF...'}
                                                 </span>
                                             )}
                                             <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
@@ -229,7 +272,56 @@ export default function ResumesPage() {
                                     </div>
 
                                     <div className="flex items-center gap-3 flex-wrap">
-                                        {resume.status === 'paid' && (
+                                        {/* Check user-level payment entitlement first */}
+                                        {hasPaid ? (
+                                            <>
+                                                {resume.pdf_url ? (
+                                                    <>
+                                                        <a
+                                                            href={resume.pdf_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
+                                                        >
+                                                            Download PDF
+                                                        </a>
+                                                        {resume.shareable_link && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(
+                                                                        `${window.location.origin}/resume/${resume.shareable_link}`
+                                                                    );
+                                                                    alert('Shareable link copied to clipboard!');
+                                                                }}
+                                                                className="px-4 py-2 border-2 border-career-blue text-career-blue font-medium rounded-lg hover:bg-soft-sky transition-colors"
+                                                            >
+                                                                Copy Link
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-gray-600">
+                                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-career-blue"></div>
+                                                        <span className="text-sm">Generating your PDF...</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : resume.status === 'locked' ? (
+                                            <Link
+                                                href="/checkout"
+                                                className="px-4 py-2 bg-step-green text-white font-medium rounded-lg hover:bg-step-green-dark transition-colors"
+                                            >
+                                                Unlock Resume ($9.99)
+                                            </Link>
+                                        ) : resume.status === 'draft' ? (
+                                            <Link
+                                                href="/builder/step-1"
+                                                className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
+                                            >
+                                                Continue Building
+                                            </Link>
+                                        ) : (
+                                            // Resume is already paid (legacy)
                                             <>
                                                 {resume.pdf_url ? (
                                                     <>
@@ -263,23 +355,8 @@ export default function ResumesPage() {
                                                 )}
                                             </>
                                         )}
-                                        {resume.status === 'locked' && (
-                                            <Link
-                                                href="/checkout"
-                                                className="px-4 py-2 bg-step-green text-white font-medium rounded-lg hover:bg-step-green-dark transition-colors"
-                                            >
-                                                Unlock Resume ($9.99)
-                                            </Link>
-                                        )}
-                                        {resume.status === 'draft' && (
-                                            <Link
-                                                href="/builder/step-1"
-                                                className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
-                                            >
-                                                Continue Building
-                                            </Link>
-                                        )}
-                                        {resume.status === 'paid' && (
+                                        {/* Show LinkedIn content button only if user has paid */}
+                                        {hasPaid && (
                                             <>
                                                 {resume.linkedin_content ? (
                                                     <Link

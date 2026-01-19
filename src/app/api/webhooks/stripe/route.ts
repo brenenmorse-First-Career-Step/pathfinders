@@ -117,10 +117,33 @@ export async function POST(request: NextRequest) {
                         });
                     }
 
+                    // CRITICAL FIX: Update ALL locked resumes to paid when payment succeeds
+                    // Payment is a user-level entitlement (lifetime access), not per-resume
+                    const { error: updateAllResumesError } = await supabase
+                        .from('resumes')
+                        .update({
+                            status: 'paid',
+                        })
+                        .eq('user_id', userId)
+                        .eq('status', 'locked');
+
+                    if (updateAllResumesError) {
+                        paymentLogger.error('Failed to update all locked resumes', {
+                            error: updateAllResumesError,
+                            userId,
+                            sessionId: session.id,
+                        });
+                    } else {
+                        paymentLogger.info('Updated all locked resumes to paid status', {
+                            userId,
+                            sessionId: session.id,
+                        });
+                    }
+
                     let resume;
 
                     if (resumeId && resumeId !== 'new-resume') {
-                        // Update existing locked resume to paid
+                        // Update the specific resume that was paid for
                         const { data: updatedResume, error: updateError } = await supabase
                             .from('resumes')
                             .update({
