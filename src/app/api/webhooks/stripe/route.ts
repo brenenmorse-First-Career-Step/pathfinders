@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
                         .single();
 
                     // Fetch user's email from auth.users table
-                    const { data: authUser, error: authError } = await supabase
+                    const { data: authUser } = await supabase
                         .from('users')
                         .select('email')
                         .eq('id', userId)
