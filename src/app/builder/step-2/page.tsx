@@ -7,7 +7,6 @@ import { BuilderLayout } from "@/components/layout";
 import { Button, Card } from "@/components/ui";
 import { useProfile } from "@/context/ProfileContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
-import AuthGuard from "@/components/AuthGuard";
 
 export default function Step2Page() {
   const router = useRouter();

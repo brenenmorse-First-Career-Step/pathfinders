@@ -61,8 +61,8 @@ export function LiveResumePreview({
     skills,
     experiences,
     certifications,
-    photoUrl,
-    showPhoto = true,
+    photoUrl: _photoUrl,
+    showPhoto: _showPhoto = true,
     isPaid = false,
     variant = 'preview',
 }: LiveResumePreviewProps) {

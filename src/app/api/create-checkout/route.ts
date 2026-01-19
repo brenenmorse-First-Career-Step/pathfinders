@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createCheckoutSession } from '@/lib/stripe';
 
-export async function POST(_req: Request) {
+export async function POST() {
     try {
         const cookieStore = await cookies();
 

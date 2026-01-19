@@ -23,6 +23,7 @@ export default function ReviewPage() {
     if (user) {
       checkPayment();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const checkPayment = async () => {
@@ -41,9 +42,6 @@ export default function ReviewPage() {
     setChecking(false);
   };
 
-  const handleCompleteAndPay = () => {
-    router.push('/checkout');
-  };
 
   const handleEditSection = (step: number) => {
     setCurrentStep(step);

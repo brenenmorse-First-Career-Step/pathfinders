@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Check, Sparkles, FileText, Map, Linkedin, Download } from 'lucide-react';

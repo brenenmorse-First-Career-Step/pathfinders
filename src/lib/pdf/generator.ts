@@ -130,7 +130,7 @@ export async function uploadPDFToStorage(
         const userFolder = `${userId}/`;
         const filePath = `${userFolder}${fileName}`;
         
-        const { data: _uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from('resume-assets')
             .upload(filePath, pdfBlob, {
                 contentType: 'application/pdf',

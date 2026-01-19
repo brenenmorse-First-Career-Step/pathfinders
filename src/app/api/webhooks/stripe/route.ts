@@ -70,9 +70,9 @@ export async function POST(request: NextRequest) {
                         });
 
                         // Create or update user_payments record
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const { error: paymentError } = await supabase
                             .from('user_payments')
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             .upsert({
                                 user_id: userId,
                                 has_paid: true,

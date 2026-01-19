@@ -10,15 +10,12 @@ import {
     Target,
     Wrench,
     List,
-    Library,
     Rocket,
-    Tag,
     Download,
     Clock,
     Hash,
     BookOpen
 } from 'lucide-react';
-import { Button } from '@/components/ui';
 
 export default function CareerRoadmapContent() {
     const router = useRouter();

@@ -28,7 +28,7 @@ export default function Step6Page() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  const uploadPhotoToStorage = async (file: File): Promise<string | null> => {
+  const uploadPhotoToStorage = useCallback(async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
       const supabase = createBrowserClient();
@@ -70,7 +70,7 @@ export default function Step6Page() {
     } finally {
       setUploading(false);
     }
-  };
+  }, [user?.id, setError, setUploading]);
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
