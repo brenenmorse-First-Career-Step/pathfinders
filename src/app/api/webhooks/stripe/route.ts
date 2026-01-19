@@ -66,16 +66,25 @@ export async function POST(request: NextRequest) {
                     amount: session.amount_total,
                 });
 
-                // Extract metadata
-                const userId = session.metadata?.userId;
+                // Extract metadata - try metadata first, then client_reference_id as fallback
+                const userId = session.metadata?.userId || session.client_reference_id;
                 const productType = session.metadata?.product_type;
 
                 if (!userId) {
                     paymentLogger.error('Missing userId in session metadata', {
                         sessionId: session.id,
+                        metadata: session.metadata,
+                        clientReferenceId: session.client_reference_id,
                     });
                     break;
                 }
+                
+                paymentLogger.info('Processing payment for user', {
+                    userId,
+                    productType,
+                    sessionId: session.id,
+                    amount: session.amount_total,
+                });
 
                 try {
                     const supabase = createAdminClient();
@@ -152,12 +161,13 @@ export async function POST(request: NextRequest) {
                     // CRITICAL FIX: Update ALL locked resumes to paid when payment succeeds
                     // Payment is a user-level entitlement (lifetime access), not per-resume
                     const updateData: { status: string } = { status: 'paid' };
-                    const { error: updateAllResumesError } = await supabase
+                    const { data: updatedResumes, error: updateAllResumesError } = await supabase
                         .from('resumes')
                         // @ts-expect-error - Supabase type inference issue with admin client
                         .update(updateData)
                         .eq('user_id', userId)
-                        .eq('status', 'locked');
+                        .eq('status', 'locked')
+                        .select();
 
                     if (updateAllResumesError) {
                         paymentLogger.error('Failed to update all locked resumes', {
@@ -169,6 +179,8 @@ export async function POST(request: NextRequest) {
                         paymentLogger.info('Updated all locked resumes to paid status', {
                             userId,
                             sessionId: session.id,
+                            updatedCount: updatedResumes?.length || 0,
+                            resumeIds: updatedResumes?.map((r: ResumeRecord) => r.id) || [],
                         });
                     }
 

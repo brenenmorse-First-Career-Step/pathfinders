@@ -58,6 +58,18 @@ export default function ResumesPage() {
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Check if user just completed payment
+        const paymentCompleted = sessionStorage.getItem('payment_completed');
+        if (paymentCompleted === 'true') {
+            sessionStorage.removeItem('payment_completed');
+            // Wait a bit for webhook to process, then refresh
+            setTimeout(() => {
+                checkPaymentStatus();
+                fetchResumes();
+            }, 2000);
+        }
+        
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
