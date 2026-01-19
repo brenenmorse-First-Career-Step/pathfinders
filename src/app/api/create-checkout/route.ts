@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createCheckoutSession } from '@/lib/stripe';
 
-export async function POST() {
+export async function POST(_req: Request) {
     try {
         const cookieStore = await cookies();
 
@@ -17,9 +17,15 @@ export async function POST() {
                         return cookieStore.getAll();
                     },
                     setAll(cookiesToSet) {
-                        cookiesToSet.forEach(({ name, value, options }) => {
-                            cookieStore.set(name, value, options);
-                        });
+                        try {
+                            cookiesToSet.forEach(({ name, value, options }) => {
+                                cookieStore.set(name, value, options);
+                            });
+                        } catch {
+                            // The `setAll` method was called from a Server Component.
+                            // This can be ignored if you have middleware refreshing
+                            // user sessions.
+                        }
                     },
                 },
             }
@@ -47,14 +53,6 @@ export async function POST() {
             console.error('Profile error:', profileError);
             return NextResponse.json(
                 { error: 'Profile not found - Please complete the builder first' },
-                { status: 400 }
-            );
-        }
-
-        // Verify profile is reasonably complete
-        if (!profile.headline || !profile.about_text) {
-            return NextResponse.json(
-                { error: 'Please complete your profile before purchasing' },
                 { status: 400 }
             );
         }

@@ -92,7 +92,7 @@ export async function fetchUserResumeData(userId: string): Promise<ResumeData | 
             graduationYear: profile?.graduation_year || undefined,
             skills: profile?.skills || [],
             experiences: experiences || [],
-            certifications: certifications?.map((cert: any) => ({
+            certifications: certifications?.map((cert: { name: string; issuer?: string; issuing_organization?: string; issue_date?: string; date_issued?: string }) => ({
                 name: cert.name,
                 issuer: cert.issuer || cert.issuing_organization,
                 date_issued: cert.issue_date || cert.date_issued,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Target, Palette, BookOpen, Save, FileText, Linkedin, Check } from 'lucide-react';
+import { Target, Palette, BookOpen, Save, Check } from 'lucide-react';
 
 interface Feature {
     icon: React.ReactNode;
