@@ -124,7 +124,7 @@ export async function uploadPDFToStorage(
 
         // Upload to Supabase Storage
         const { data: _uploadData, error: uploadError } = await supabase.storage
-            .from('resumes')
+            .from('resume-assets')
             .upload(fileName, pdfBlob, {
                 contentType: 'application/pdf',
                 upsert: false,
@@ -137,7 +137,7 @@ export async function uploadPDFToStorage(
 
         // Get public URL
         const { data: urlData } = supabase.storage
-            .from('resumes')
+            .from('resume-assets')
             .getPublicUrl(fileName);
 
         return { url: urlData.publicUrl, error: null };

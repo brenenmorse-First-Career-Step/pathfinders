@@ -14,13 +14,15 @@ interface PaymentGateProps {
     description?: string;
     features?: Feature[];
     buttonText?: string;
+    checkoutEndpoint?: string;
 }
 
 export default function PaymentGate({
     title = "Unlock Your Career Roadmap",
     description = "Get unlimited access to AI-powered career roadmaps with professional infographics, personalized learning paths, and curated free courses.",
     features,
-    buttonText = "Unlock Career Roadmaps"
+    buttonText = "Unlock Career Roadmaps",
+    checkoutEndpoint = "/api/create-roadmap-checkout"
 }: PaymentGateProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export default function PaymentGate({
             setError(null);
 
             // Create checkout session
-            const response = await fetch('/api/create-roadmap-checkout', {
+            const response = await fetch(checkoutEndpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

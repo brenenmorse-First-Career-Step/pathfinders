@@ -142,6 +142,7 @@ export default function ReviewPage() {
                     title=""
                     description=""
                     buttonText="Unlock & Download ($9.99)"
+                    checkoutEndpoint="/api/create-checkout"
                     features={[
                       {
                         icon: <Download className="w-5 h-5 text-career-blue" />,
