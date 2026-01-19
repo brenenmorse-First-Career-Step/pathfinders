@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
                                 payment_amount: (session.amount_total || 0) / 100, // Convert cents to dollars
                                 stripe_payment_intent_id: session.payment_intent as string,
                                 paid_at: new Date().toISOString(),
-                            }, {
+                            } as any, {
                                 onConflict: 'user_id',
                             });
 
