@@ -49,14 +49,25 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Client-side Supabase client (for use in Client Components)
+// Use singleton pattern to avoid excessive client creation
+let browserClientInstance: ReturnType<typeof createBrowserSupabaseClient> | null = null;
+
 export function createBrowserClient() {
     try {
-        const client = createBrowserSupabaseClient(
+        // Return existing client if available (singleton pattern)
+        if (browserClientInstance) {
+            return browserClientInstance;
+        }
+        
+        browserClientInstance = createBrowserSupabaseClient(
             supabaseUrl!,
             supabaseAnonKey!
         );
-        supabaseLogger.info('Client Creation', 'Browser client created successfully');
-        return client;
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+            supabaseLogger.info('Client Creation', 'Browser client created successfully');
+        }
+        return browserClientInstance;
     } catch (error) {
         supabaseLogger.error('Client Creation', error, { type: 'browser' });
         throw error;
@@ -64,6 +75,9 @@ export function createBrowserClient() {
 }
 
 // Admin client with service role key (for privileged operations)
+// Use singleton pattern to avoid excessive client creation
+let adminClientInstance: ReturnType<typeof createClient> | null = null;
+
 export function createAdminClient() {
     if (!supabaseServiceKey) {
         const error = new Error('SUPABASE_SERVICE_ROLE_KEY is not defined');
@@ -78,14 +92,22 @@ export function createAdminClient() {
     }
 
     try {
-        const client = createClient(supabaseUrl, supabaseServiceKey, {
+        // Return existing client if available (singleton pattern)
+        if (adminClientInstance) {
+            return adminClientInstance;
+        }
+        
+        adminClientInstance = createClient(supabaseUrl, supabaseServiceKey, {
             auth: {
                 autoRefreshToken: false,
                 persistSession: false,
             },
         });
-        supabaseLogger.info('Client Creation', 'Admin client created successfully');
-        return client;
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+            supabaseLogger.info('Client Creation', 'Admin client created successfully');
+        }
+        return adminClientInstance;
     } catch (error) {
         supabaseLogger.error('Client Creation', error, { type: 'admin' });
         throw error;

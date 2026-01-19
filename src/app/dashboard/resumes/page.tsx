@@ -39,6 +39,14 @@ export default function ResumesPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
+    // Debug: Log resumes state changes
+    useEffect(() => {
+        console.log('Resumes state updated:', resumes.length, 'resumes');
+        if (resumes.length > 0) {
+            console.log('Resumes in state:', resumes);
+        }
+    }, [resumes]);
+
     // Refresh payment status when page becomes visible (e.g., after returning from payment)
     useEffect(() => {
         if (!user) return;
@@ -100,6 +108,15 @@ export default function ResumesPage() {
             // Show all resumes - paid, locked, and draft
             // Log for debugging
             console.log('Fetched resumes:', data?.length || 0, 'resumes found');
+            console.log('Resume data:', data);
+            console.log('Resume titles:', data?.map(r => r.title));
+            
+            if (data && data.length > 0) {
+                console.log('First resume:', data[0]);
+                console.log('First resume title:', data[0].title);
+                console.log('First resume status:', data[0].status);
+            }
+            
             setResumes(data || []);
         } catch (error) {
             console.error('Error fetching resumes:', error);
