@@ -201,7 +201,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             id: cert.id,
             name: cert.name,
             issuer: cert.issuer || '',
-            dateIssued: cert.date_issued || '',
+            dateIssued: cert.issue_date || '',
           })) || [],
         };
 
@@ -371,7 +371,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             user_id: user.id,
             name: cert.name,
             issuer: cert.issuer || null,
-            date_issued: cert.dateIssued || null,
+            issue_date: cert.dateIssued || null,
           }))
 
           console.log('Saving certifications:', certificationsToInsert);
