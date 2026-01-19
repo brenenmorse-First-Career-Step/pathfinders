@@ -33,10 +33,11 @@ export default function Step6Page() {
       setUploading(true);
       const supabase = createBrowserClient();
 
-      // Create unique filename
+      // Create unique filename in user-specific folder
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
-      const filePath = `profile-photos/${fileName}`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      const userFolder = `${user?.id}/`;
+      const filePath = `${userFolder}profile-photos/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -51,12 +52,17 @@ export default function Step6Page() {
         throw uploadError;
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Get signed URL for private bucket (valid for 1 year)
+      const { data: urlData, error: urlError } = await supabase.storage
         .from('resume-assets')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 31536000); // 1 year expiry
 
-      return publicUrl;
+      if (urlError || !urlData) {
+        console.error('Error creating signed URL:', urlError);
+        throw urlError || new Error('Failed to create signed URL');
+      }
+
+      return urlData.signedUrl;
     } catch (error) {
       console.error('Error uploading photo:', error);
       setError('Failed to upload photo. Please try again.');

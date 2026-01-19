@@ -7,8 +7,15 @@ import { logger } from '@/lib/logger';
 const protectedRoutes = [
     '/builder/step',
     '/builder/review',
+    '/builder/step-1',
+    '/builder/step-2',
+    '/builder/step-3',
+    '/builder/step-4',
+    '/builder/step-5',
+    '/builder/step-6',
     '/dashboard',
     '/success',
+    '/resume-builder', // Protect resume builder page
 ];
 
 // Routes that should redirect to builder if already authenticated
@@ -44,11 +51,13 @@ export async function middleware(request: NextRequest) {
             }
         );
 
-        // Get the current user session
+        // Get the current user session - use getUser() for more reliable auth check
         const {
-            data: { session },
+            data: { user },
             error: sessionError,
-        } = await supabase.auth.getSession();
+        } = await supabase.auth.getUser();
+
+        const session = user ? { user } : null;
 
         if (sessionError) {
             logger.error('Middleware', sessionError, { pathname });

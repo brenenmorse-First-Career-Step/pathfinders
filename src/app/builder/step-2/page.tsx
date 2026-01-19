@@ -7,11 +7,19 @@ import { BuilderLayout } from "@/components/layout";
 import { Button, Card } from "@/components/ui";
 import { useProfile } from "@/context/ProfileContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
+import AuthGuard from "@/components/AuthGuard";
 
 export default function Step2Page() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { profile, updateProfile, setCurrentStep } = useProfile();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push(`/login?redirect=${encodeURIComponent('/builder/step-2')}`);
+    }
+  }, [user, authLoading, router]);
 
   const [headline, setHeadline] = useState(profile.headline || "");
   const [generatedHeadlines, setGeneratedHeadlines] = useState<string[]>([]);

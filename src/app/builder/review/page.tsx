@@ -10,6 +10,7 @@ import { LiveResumePreview } from "@/components/LiveResumePreview";
 import PaymentGate from "@/components/PaymentGate";
 import { createBrowserClient } from "@/lib/supabase";
 import { Download, Linkedin } from "lucide-react";
+import AuthGuard from "@/components/AuthGuard";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -19,7 +20,9 @@ export default function ReviewPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    checkPayment();
+    if (user) {
+      checkPayment();
+    }
   }, [user]);
 
   const checkPayment = async () => {
@@ -48,6 +51,7 @@ export default function ReviewPage() {
   };
 
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-gradient-to-b from-soft-sky/30 to-white">
       <Header showBack onBack={() => router.push("/builder/step-6")} minimal />
 
@@ -217,5 +221,6 @@ export default function ReviewPage() {
         </div>
       </main>
     </div>
+    </AuthGuard>
   );
 }

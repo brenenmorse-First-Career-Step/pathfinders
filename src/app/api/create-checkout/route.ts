@@ -57,8 +57,48 @@ export async function POST(_req: Request) {
             );
         }
 
-        // Create Stripe checkout session
-        const result = await createCheckoutSession(user.id, 'new-resume');
+        // Create or get existing resume record first (with 'locked' status)
+        // This ensures resume exists even if payment fails
+        let resumeId = 'new-resume';
+        
+        // Check if user already has a locked resume
+        const { data: existingResume } = await supabase
+            .from('resumes')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('status', 'locked')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (!existingResume) {
+            // Create new locked resume
+            const shareableLink = crypto.randomUUID();
+            const { data: newResume, error: resumeError } = await supabase
+                .from('resumes')
+                .insert({
+                    user_id: user.id,
+                    title: `${profile.full_name || user.email || 'My'} Resume`,
+                    status: 'locked',
+                    shareable_link: shareableLink,
+                })
+                .select('id')
+                .single();
+
+            if (resumeError) {
+                console.error('Resume creation error:', resumeError);
+                return NextResponse.json(
+                    { error: 'Failed to create resume record' },
+                    { status: 500 }
+                );
+            }
+            resumeId = newResume.id;
+        } else {
+            resumeId = existingResume.id;
+        }
+
+        // Create Stripe checkout session with resume ID
+        const result = await createCheckoutSession(user.id, resumeId);
 
         if ('error' in result) {
             return NextResponse.json(

@@ -19,9 +19,16 @@ const GRADUATION_YEARS = Array.from({ length: 11 }, (_, i) => (2020 + i).toStrin
 
 export default function Step1Page() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { profile, updateProfile, loading } = useProfile();
   const { setCurrentStep } = useResume();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push(`/login?redirect=${encodeURIComponent('/builder/step-1')}`);
+    }
+  }, [user, authLoading, router]);
 
   // Local state for form
   const [formData, setFormData] = useState({

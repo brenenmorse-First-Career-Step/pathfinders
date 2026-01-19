@@ -126,10 +126,13 @@ export async function uploadPDFToStorage(
         const supabase = createAdminClient();
         const fileName = `resume_${userId}_${Date.now()}.pdf`;
 
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage in user-specific folder for security
+        const userFolder = `${userId}/`;
+        const filePath = `${userFolder}${fileName}`;
+        
         const { data: _uploadData, error: uploadError } = await supabase.storage
             .from('resume-assets')
-            .upload(fileName, pdfBlob, {
+            .upload(filePath, pdfBlob, {
                 contentType: 'application/pdf',
                 upsert: false,
             });
@@ -139,12 +142,17 @@ export async function uploadPDFToStorage(
             return { url: null, error: uploadError };
         }
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
+        // Get signed URL for private bucket (valid for 1 year)
+        const { data: urlData, error: urlError } = await supabase.storage
             .from('resume-assets')
-            .getPublicUrl(fileName);
+            .createSignedUrl(filePath, 31536000); // 1 year expiry
 
-        return { url: urlData.publicUrl, error: null };
+        if (urlError || !urlData) {
+            console.error('Error creating signed URL:', urlError);
+            return { url: null, error: urlError || new Error('Failed to create signed URL') };
+        }
+
+        return { url: urlData.signedUrl, error: null };
     } catch (error) {
         console.error('Error uploading PDF:', error);
         return { url: null, error: error as Error };

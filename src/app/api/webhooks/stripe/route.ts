@@ -99,21 +99,8 @@ export async function POST(request: NextRequest) {
                     }
 
                     // Handle resume payment (existing logic)
-                    // Fetch user's profile data
-                    const { data: _profile, error: profileError } = await supabase
-                        .from('profile')
-                        .select('*')
-                        .eq('user_id', userId)
-                        .single();
-
-                    if (profileError) {
-                        paymentLogger.error('Failed to fetch user profile', {
-                            error: profileError,
-                            userId,
-                            sessionId: session.id,
-                        });
-                        break;
-                    }
+                    // Get resume ID from metadata
+                    const resumeId = session.metadata?.resumeId;
 
                     // Fetch user's basic info
                     const { data: user, error: userError } = await supabase
@@ -130,49 +117,79 @@ export async function POST(request: NextRequest) {
                         });
                     }
 
-                    // Generate unique shareable link
-                    const shareableLink = crypto.randomUUID();
+                    let resume;
 
-                    // Calculate next version number (restarts from 1 if all resumes deleted)
-                    const { data: existingResumes } = await supabase
-                        .from('resumes')
-                        .select('version')
-                        .eq('user_id', userId)
-                        .order('version', { ascending: false })
-                        .limit(1);
+                    if (resumeId && resumeId !== 'new-resume') {
+                        // Update existing locked resume to paid
+                        const { data: updatedResume, error: updateError } = await supabase
+                            .from('resumes')
+                            .update({
+                                status: 'paid',
+                                stripe_session_id: session.id,
+                            })
+                            .eq('id', resumeId)
+                            .eq('user_id', userId)
+                            .select()
+                            .single();
 
-                    const nextVersion = existingResumes && existingResumes.length > 0
-                        ? (existingResumes[0].version || 0) + 1
-                        : 1;
-
-                    // Create resume record with status 'paid'
-                    const { data: resume, error: resumeError } = await supabase
-                        .from('resumes')
-                        .insert({
-                            user_id: userId,
-                            title: `${user?.full_name || 'My'} Resume`,
-                            status: 'paid',
-                            shareable_link: shareableLink,
-                            stripe_session_id: session.id,
-                            version: nextVersion,
-                            linkedin_content: null, // Will be generated later
-                            pdf_url: null, // Will be generated later
-                        })
-                        .select()
-                        .single();
-
-                    if (resumeError) {
-                        paymentLogger.error('Failed to create resume record', {
-                            error: resumeError,
-                            userId,
-                            sessionId: session.id,
-                        });
+                        if (updateError) {
+                            paymentLogger.error('Failed to update resume record', {
+                                error: updateError,
+                                userId,
+                                resumeId,
+                                sessionId: session.id,
+                            });
+                            break;
+                        }
+                        resume = updatedResume;
                     } else {
-                        paymentLogger.info('Resume record created successfully', {
+                        // Create new resume record (fallback if resumeId not provided)
+                        const shareableLink = crypto.randomUUID();
+
+                        // Calculate next version number
+                        const { data: existingResumes } = await supabase
+                            .from('resumes')
+                            .select('version')
+                            .eq('user_id', userId)
+                            .order('version', { ascending: false })
+                            .limit(1);
+
+                        const nextVersion = existingResumes && existingResumes.length > 0
+                            ? (existingResumes[0].version || 0) + 1
+                            : 1;
+
+                        const { data: newResume, error: resumeError } = await supabase
+                            .from('resumes')
+                            .insert({
+                                user_id: userId,
+                                title: `${user?.full_name || 'My'} Resume`,
+                                status: 'paid',
+                                shareable_link: shareableLink,
+                                stripe_session_id: session.id,
+                                version: nextVersion,
+                                linkedin_content: null,
+                                pdf_url: null,
+                            })
+                            .select()
+                            .single();
+
+                        if (resumeError) {
+                            paymentLogger.error('Failed to create resume record', {
+                                error: resumeError,
+                                userId,
+                                sessionId: session.id,
+                            });
+                            break;
+                        }
+                        resume = newResume;
+                    }
+
+                    if (resume) {
+                        paymentLogger.info('Resume record updated/created successfully', {
                             userId,
                             resumeId: resume.id,
                             sessionId: session.id,
-                            shareableLink,
+                            shareableLink: resume.shareable_link,
                         });
 
                         // Trigger PDF generation
