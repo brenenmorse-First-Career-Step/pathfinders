@@ -8,7 +8,7 @@ import { logger, dbLogger } from "@/lib/logger";
 // Types
 export interface Experience {
   id: string;
-  type: "job" | "volunteer" | "extracurricular" | "project" | "other" | "sport" | "club" | "fulltime" | "parttime" | "remote" | "freelance" | "hybrid" | "onsite";
+  type: "job" | "volunteer" | "extracurricular" | "project" | "other" | "sport" | "club" | "fulltime" | "parttime" | "remote" | "freelance" | "hybrid" | "onsite" | "contract";
   title: string;
   organization: string;
   description: string;
