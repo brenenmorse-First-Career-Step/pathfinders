@@ -19,13 +19,20 @@ interface ResumeRecord {
 
 export async function POST(request: NextRequest) {
     try {
+        // Log webhook attempt for debugging
+        const requestUrl = request.url || 'unknown';
+        paymentLogger.info('Webhook endpoint hit', `Received webhook request at ${requestUrl}`);
+        
         // Get the raw body
         const body = await request.text();
         const headersList = await headers();
         const signature = headersList.get('stripe-signature');
 
         if (!signature) {
-            paymentLogger.error('Missing Stripe signature header');
+            paymentLogger.error('Missing Stripe signature header', {
+                url: requestUrl,
+                headers: Object.fromEntries(headersList.entries()),
+            });
             return NextResponse.json(
                 { error: 'Missing signature' },
                 { status: 400 }
