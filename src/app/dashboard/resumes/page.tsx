@@ -98,6 +98,8 @@ export default function ResumesPage() {
             }
             
             // Show all resumes - paid, locked, and draft
+            // Log for debugging
+            console.log('Fetched resumes:', data?.length || 0, 'resumes found');
             setResumes(data || []);
         } catch (error) {
             console.error('Error fetching resumes:', error);

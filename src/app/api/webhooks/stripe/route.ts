@@ -102,20 +102,30 @@ export async function POST(request: NextRequest) {
                     // Get resume ID from metadata
                     const resumeId = session.metadata?.resumeId;
 
-                    // Fetch user's basic info
-                    const { data: user, error: userError } = await supabase
+                    // Fetch user's profile to get full_name (not from users table)
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profile')
+                        .select('full_name')
+                        .eq('user_id', userId)
+                        .single();
+
+                    // Fetch user's email from auth.users table
+                    const { data: authUser, error: authError } = await supabase
                         .from('users')
-                        .select('full_name, email')
+                        .select('email')
                         .eq('id', userId)
                         .single();
 
-                    if (userError) {
-                        paymentLogger.error('Failed to fetch user info', {
-                            error: userError,
+                    if (profileError) {
+                        paymentLogger.error('Failed to fetch user profile', {
+                            error: profileError,
                             userId,
                             sessionId: session.id,
                         });
                     }
+
+                    // Use profile full_name first, then email, then fallback
+                    const userName = profile?.full_name || authUser?.email?.split('@')[0] || 'My';
 
                     // CRITICAL FIX: Update ALL locked resumes to paid when payment succeeds
                     // Payment is a user-level entitlement (lifetime access), not per-resume
@@ -144,11 +154,14 @@ export async function POST(request: NextRequest) {
 
                     if (resumeId && resumeId !== 'new-resume') {
                         // Update the specific resume that was paid for
+                        // Also update title if it was using email (fix existing resumes)
                         const { data: updatedResume, error: updateError } = await supabase
                             .from('resumes')
                             .update({
                                 status: 'paid',
                                 stripe_session_id: session.id,
+                                // Update title if it contains email (fix for existing resumes)
+                                title: userName !== 'My' ? `${userName} Resume` : undefined,
                             })
                             .eq('id', resumeId)
                             .eq('user_id', userId)
@@ -185,7 +198,7 @@ export async function POST(request: NextRequest) {
                             .from('resumes')
                             .insert({
                                 user_id: userId,
-                                title: `${user?.full_name || 'My'} Resume`,
+                                title: `${userName} Resume`,
                                 status: 'paid',
                                 shareable_link: shareableLink,
                                 stripe_session_id: session.id,

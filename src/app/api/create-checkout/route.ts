@@ -74,11 +74,13 @@ export async function POST(_req: Request) {
         if (!existingResume) {
             // Create new locked resume
             const shareableLink = crypto.randomUUID();
+            // Use profile full_name first, then extract name from email, then fallback
+            const userName = profile.full_name || (user.email ? user.email.split('@')[0] : 'My');
             const { data: newResume, error: resumeError } = await supabase
                 .from('resumes')
                 .insert({
                     user_id: user.id,
-                    title: `${profile.full_name || user.email || 'My'} Resume`,
+                    title: `${userName} Resume`,
                     status: 'locked',
                     shareable_link: shareableLink,
                 })
