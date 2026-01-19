@@ -29,7 +29,6 @@ export default function ResumesPage() {
     const [showLinkedInModal, setShowLinkedInModal] = useState(false);
     const [linkedInContent, setLinkedInContent] = useState<LinkedInContent | null>(null);
     const [generatingLinkedIn, setGeneratingLinkedIn] = useState(false);
-    const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
 
     useEffect(() => {
         if (user) {

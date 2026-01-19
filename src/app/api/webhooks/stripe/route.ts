@@ -72,13 +72,13 @@ export async function POST(request: NextRequest) {
                         // Create or update user_payments record
                         const { error: paymentError } = await supabase
                             .from('user_payments')
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             .upsert({
                                 user_id: userId,
                                 has_paid: true,
                                 payment_amount: (session.amount_total || 0) / 100, // Convert cents to dollars
                                 stripe_payment_intent_id: session.payment_intent as string,
                                 paid_at: new Date().toISOString(),
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             } as any, {
                                 onConflict: 'user_id',
                             });
