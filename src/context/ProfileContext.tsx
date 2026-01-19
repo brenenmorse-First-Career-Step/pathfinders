@@ -183,7 +183,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             description: exp.description || "",
             startDate: exp.start_date || "",
             endDate: exp.end_date || "",
-            isCurrent: exp.is_current || false,
+            isCurrent: exp.current || false,
             location: exp.location || "",
           })) || [],
           skills: profileData?.skills || [],
@@ -336,7 +336,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             description: exp.description,
             start_date: exp.startDate,
             end_date: exp.endDate,
-            is_current: exp.isCurrent,
+            current: exp.isCurrent,
             location: exp.location,
           }));
 
