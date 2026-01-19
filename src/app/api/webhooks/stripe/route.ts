@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     try {
         // Log webhook attempt for debugging
         const requestUrl = request.url || 'unknown';
-        paymentLogger.info('Webhook endpoint hit', `Received webhook request at ${requestUrl}`);
+        paymentLogger.info('Webhook endpoint hit', { url: requestUrl });
         
         // Get the raw body
         const body = await request.text();
