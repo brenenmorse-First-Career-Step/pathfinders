@@ -30,12 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { data: user } = await supabase
         .from('users')
         .select('full_name')
-        .eq('id', resume.user_id)
+        .eq('id', (resume as { user_id: string })?.user_id)
         .single();
 
     return {
-        title: `${user?.full_name || 'Professional'} - Resume`,
-        description: `View professional resume of ${user?.full_name}`,
+        title: `${(user as { full_name?: string } | null)?.full_name || 'Professional'} - Resume`,
+        description: `View professional resume of ${(user as { full_name?: string } | null)?.full_name}`,
     };
 }
 
@@ -58,28 +58,28 @@ export default async function ResumeViewPage({ params }: Props) {
     const { data: user } = await supabase
         .from('users')
         .select('full_name, email, linkedin_link')
-        .eq('id', resume.user_id)
+        .eq('id', (resume as { user_id: string })?.user_id)
         .single();
 
     // 3. Fetch Profile Data
     const { data: profile } = await supabase
         .from('profile')
         .select('*')
-        .eq('user_id', resume.user_id)
+        .eq('user_id', (resume as { user_id: string })?.user_id)
         .single();
 
     // 4. Fetch Experiences
     const { data: experiences } = await supabase
         .from('experiences')
         .select('*')
-        .eq('user_id', resume.user_id)
+        .eq('user_id', (resume as { user_id: string })?.user_id)
         .order('start_date', { ascending: false });
 
     // 5. Fetch Certifications
     const { data: certifications } = await supabase
         .from('certifications')
         .select('*')
-        .eq('user_id', resume.user_id)
+        .eq('user_id', (resume as { user_id: string })?.user_id)
         .order('created_at', { ascending: false });
 
     return (
@@ -99,18 +99,19 @@ export default async function ResumeViewPage({ params }: Props) {
                 className="print:shadow-none print:m-0"
             >
                 <LiveResumePreview
-                    fullName={user?.full_name || ""}
-                    email={user?.email || ""}
-                    phone={profile?.phone || ""}
-                    location={profile?.location || ""}
-                    linkedin={user?.linkedin_link || ""}
-                    headline={profile?.headline || ""}
-                    aboutText={profile?.about_text || ""}
-                    highSchool={profile?.high_school || ""}
-                    graduationYear={profile?.graduation_year || ""}
-                    skills={profile?.skills || []}
-                    experiences={experiences || []}
-                    certifications={certifications?.map(c => ({
+                    fullName={(user as { full_name?: string } | null)?.full_name || ""}
+                    email={(user as { email?: string } | null)?.email || ""}
+                    phone={(profile as { phone?: string } | null)?.phone || ""}
+                    location={(profile as { location?: string } | null)?.location || ""}
+                    linkedin={(user as { linkedin_link?: string } | null)?.linkedin_link || ""}
+                    headline={(profile as { headline?: string } | null)?.headline || ""}
+                    aboutText={(profile as { about_text?: string } | null)?.about_text || ""}
+                    highSchool={(profile as { high_school?: string } | null)?.high_school || ""}
+                    graduationYear={(profile as { graduation_year?: string } | null)?.graduation_year || ""}
+                    skills={(profile as { skills?: string[] } | null)?.skills || []}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    experiences={(experiences as any[]) || []}
+                    certifications={(certifications as Array<{ name: string; issuer?: string; date_issued?: string }> | null)?.map(c => ({
                         name: c.name,
                         issuer: c.issuer || "",
                         dateIssued: c.date_issued || ""

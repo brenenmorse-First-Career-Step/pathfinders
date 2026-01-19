@@ -81,17 +81,18 @@ export async function fetchUserResumeData(userId: string): Promise<ResumeData | 
         }
 
         return {
-            fullName: user.full_name || 'Your Name',
-            email: user.email,
-            phone: profile?.phone || undefined,
-            location: profile?.location || undefined,
-            linkedinLink: user.linkedin_link || undefined,
-            headline: profile?.headline || undefined,
-            aboutText: profile?.about_text || undefined,
-            highSchool: profile?.high_school || undefined,
-            graduationYear: profile?.graduation_year || undefined,
-            skills: profile?.skills || [],
-            experiences: experiences || [],
+            fullName: (user as { full_name?: string })?.full_name || 'Your Name',
+            email: (user as { email?: string })?.email || '',
+            phone: (profile as { phone?: string } | null)?.phone || undefined,
+            location: (profile as { location?: string } | null)?.location || undefined,
+            linkedinLink: (user as { linkedin_link?: string })?.linkedin_link || undefined,
+            headline: (profile as { headline?: string } | null)?.headline || undefined,
+            aboutText: (profile as { about_text?: string } | null)?.about_text || undefined,
+            highSchool: (profile as { high_school?: string } | null)?.high_school || undefined,
+            graduationYear: (profile as { graduation_year?: string } | null)?.graduation_year || undefined,
+            skills: (profile as { skills?: string[] } | null)?.skills || [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            experiences: (experiences as any[]) || [],
             certifications: certifications?.map((cert: { name: string; issuer?: string; issuing_organization?: string; issue_date?: string; date_issued?: string }) => ({
                 name: cert.name,
                 issuer: cert.issuer || cert.issuing_organization,

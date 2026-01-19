@@ -175,7 +175,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           proudestAccomplishment: "", // Part of about_text
           futureGoals: "", // Part of about_text
           generatedAbout: profileData?.about_text || "",
-          experiences: experiencesData?.map(exp => ({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          experiences: experiencesData?.map((exp: any) => ({
             id: exp.id,
             type: exp.type as Experience['type'],
             title: exp.title || "",
@@ -197,7 +198,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             cropY: 0,
             zoom: 1,
           },
-          certifications: certificationsData?.map(cert => ({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          certifications: certificationsData?.map((cert: any) => ({
             id: cert.id,
             name: cert.name,
             issuer: cert.issuer || '',

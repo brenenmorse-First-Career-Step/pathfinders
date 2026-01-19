@@ -108,7 +108,7 @@ export default function ResumesPage() {
             // Log for debugging
             console.log('Fetched resumes:', data?.length || 0, 'resumes found');
             console.log('Resume data:', data);
-            console.log('Resume titles:', data?.map(r => r.title));
+            console.log('Resume titles:', data?.map((r: Resume) => r.title));
             
             if (data && data.length > 0) {
                 console.log('First resume:', data[0]);
@@ -149,7 +149,6 @@ export default function ResumesPage() {
     };
 
     const handleGenerateLinkedIn = async (resumeId: string) => {
-        setCurrentResumeId(resumeId);
         setGeneratingLinkedIn(true);
         setShowLinkedInModal(true);
 
@@ -158,6 +157,9 @@ export default function ResumesPage() {
             if (!profile) {
                 throw new Error('Profile not loaded. Please refresh the page and try again.');
             }
+            
+            // Store resumeId for later use if needed
+            console.log('Generating LinkedIn for resume:', resumeId);
 
             // Generate LinkedIn content using profile data from context
             const response = await fetch('/api/ai/generate-linkedin-profile', {

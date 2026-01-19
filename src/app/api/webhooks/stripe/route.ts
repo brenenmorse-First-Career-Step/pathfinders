@@ -5,6 +5,18 @@ import { verifyWebhookSignature } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase';
 import { logger, paymentLogger } from '@/lib/logger';
 
+// Type definition for resume object from Supabase
+interface ResumeRecord {
+    id: string;
+    user_id: string;
+    title: string;
+    status: string;
+    shareable_link: string | null;
+    pdf_url: string | null;
+    version?: number;
+    stripe_session_id?: string | null;
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Get the raw body
@@ -132,12 +144,11 @@ export async function POST(request: NextRequest) {
 
                     // CRITICAL FIX: Update ALL locked resumes to paid when payment succeeds
                     // Payment is a user-level entitlement (lifetime access), not per-resume
+                    const updateData: { status: string } = { status: 'paid' };
                     const { error: updateAllResumesError } = await supabase
                         .from('resumes')
-                        .update({
-                            status: 'paid',
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        } as any)
+                        // @ts-expect-error - Supabase type inference issue with admin client
+                        .update(updateData)
                         .eq('user_id', userId)
                         .eq('status', 'locked');
 
@@ -159,14 +170,17 @@ export async function POST(request: NextRequest) {
                     if (resumeId && resumeId !== 'new-resume') {
                         // Update the specific resume that was paid for
                         // Also update title if it was using email (fix existing resumes)
+                        const resumeUpdateData: { status: string; stripe_session_id: string; title?: string } = {
+                            status: 'paid',
+                            stripe_session_id: session.id,
+                        };
+                        if (userName !== 'My') {
+                            resumeUpdateData.title = `${userName} Resume`;
+                        }
                         const { data: updatedResume, error: updateError } = await supabase
                             .from('resumes')
-                            .update({
-                                status: 'paid',
-                                stripe_session_id: session.id,
-                                // Update title if it contains email (fix for existing resumes)
-                                title: userName !== 'My' ? `${userName} Resume` : undefined,
-                            })
+                            // @ts-expect-error - Supabase type inference issue with admin client
+                            .update(resumeUpdateData)
                             .eq('id', resumeId)
                             .eq('user_id', userId)
                             .select()
@@ -181,7 +195,7 @@ export async function POST(request: NextRequest) {
                             });
                             break;
                         }
-                        resume = updatedResume;
+                        resume = updatedResume as ResumeRecord;
                     } else {
                         // Create new resume record (fallback if resumeId not provided)
                         const shareableLink = crypto.randomUUID();
@@ -195,21 +209,23 @@ export async function POST(request: NextRequest) {
                             .limit(1);
 
                         const nextVersion = existingResumes && existingResumes.length > 0
-                            ? (existingResumes[0].version || 0) + 1
+                            ? ((existingResumes[0] as { version?: number })?.version || 0) + 1
                             : 1;
 
+                        const insertData = {
+                            user_id: userId,
+                            title: `${userName} Resume`,
+                            status: 'paid',
+                            shareable_link: shareableLink,
+                            stripe_session_id: session.id,
+                            version: nextVersion,
+                            linkedin_content: null,
+                            pdf_url: null,
+                        };
                         const { data: newResume, error: resumeError } = await supabase
                             .from('resumes')
-                            .insert({
-                                user_id: userId,
-                                title: `${userName} Resume`,
-                                status: 'paid',
-                                shareable_link: shareableLink,
-                                stripe_session_id: session.id,
-                                version: nextVersion,
-                                linkedin_content: null,
-                                pdf_url: null,
-                            })
+                            // @ts-expect-error - Supabase type inference issue with admin client
+                            .insert(insertData)
                             .select()
                             .single();
 
@@ -221,21 +237,21 @@ export async function POST(request: NextRequest) {
                             });
                             break;
                         }
-                        resume = newResume;
+                        resume = newResume as ResumeRecord;
                     }
 
                     if (resume) {
                         paymentLogger.info('Resume record updated/created successfully', {
                             userId,
-                            resumeId: resume.id,
+                            resumeId: resume?.id || '',
                             sessionId: session.id,
-                            shareableLink: resume.shareable_link,
+                            shareableLink: resume?.shareable_link || null,
                         });
 
                         // Trigger PDF generation
                         paymentLogger.info('Starting PDF generation', {
                             userId,
-                            resumeId: resume.id,
+                            resumeId: resume?.id || '',
                         });
 
                         try {
@@ -248,24 +264,26 @@ export async function POST(request: NextRequest) {
                                 paymentLogger.error('PDF generation failed', {
                                     error: pdfError,
                                     userId,
-                                    resumeId: resume.id,
+                                    resumeId: resume?.id || '',
                                 });
                             } else if (pdfUrl) {
                                 // Update resume with PDF URL
+                                const pdfUpdateData = { pdf_url: pdfUrl };
                                 const { error: updateError } = await supabase
                                     .from('resumes')
-                                    .update({ pdf_url: pdfUrl })
-                                    .eq('id', resume.id);
+                                    // @ts-expect-error - Supabase type inference issue with admin client
+                                    .update(pdfUpdateData)
+                                    .eq('id', resume?.id || '');
 
                                 if (updateError) {
                                     paymentLogger.error('Failed to update resume with PDF URL', {
                                         error: updateError,
-                                        resumeId: resume.id,
+                                        resumeId: resume?.id || '',
                                     });
                                 } else {
                                     paymentLogger.info('PDF generated and uploaded successfully', {
                                         userId,
-                                        resumeId: resume.id,
+                                        resumeId: resume?.id || '',
                                         pdfUrl,
                                     });
                                 }
@@ -274,7 +292,7 @@ export async function POST(request: NextRequest) {
                             paymentLogger.error('PDF generation error', {
                                 error: pdfGenError,
                                 userId,
-                                resumeId: resume.id,
+                                resumeId: resume?.id || '',
                             });
                         }
                     }
