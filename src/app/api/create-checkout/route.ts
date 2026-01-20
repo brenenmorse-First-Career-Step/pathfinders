@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createCheckoutSession } from '@/lib/stripe';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
     try {
         const cookieStore = await cookies();
 
@@ -17,15 +17,9 @@ export async function POST() {
                         return cookieStore.getAll();
                     },
                     setAll(cookiesToSet) {
-                        try {
-                            cookiesToSet.forEach(({ name, value, options }) => {
-                                cookieStore.set(name, value, options);
-                            });
-                        } catch {
-                            // The `setAll` method was called from a Server Component.
-                            // This can be ignored if you have middleware refreshing
-                            // user sessions.
-                        }
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            cookieStore.set(name, value, options);
+                        });
                     },
                 },
             }
@@ -57,9 +51,15 @@ export async function POST() {
             );
         }
 
-        // OLD WORKING APPROACH: Don't create resume before payment
-        // Resume will be created by webhook AFTER payment succeeds
-        // Create Stripe checkout session (resumeId will be 'new-resume')
+        // Verify profile is reasonably complete
+        if (!profile.headline || !profile.about_text) {
+            return NextResponse.json(
+                { error: 'Please complete your profile before purchasing' },
+                { status: 400 }
+            );
+        }
+
+        // Create Stripe checkout session
         const result = await createCheckoutSession(user.id, 'new-resume');
 
         if ('error' in result) {

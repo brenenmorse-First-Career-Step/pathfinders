@@ -110,6 +110,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     email: data.user.email,
                 });
 
+                // Create user record in users table
+                const { error: userError } = await supabase.from('users').insert({
+                    id: data.user.id,
+                    email: data.user.email!,
+                    full_name: fullName,
+                    linkedin_link: linkedinLink || null,
+                });
+
+                if (userError) {
+                    authLogger.error(userError, { context: 'createUserRecord', userId: data.user.id });
+                }
+
                 // Create profile record
                 const { error: profileError } = await supabase.from('profile').insert({
                     user_id: data.user.id,

@@ -10,15 +10,8 @@ import { LiveResumePreview } from "@/components/LiveResumePreview";
 
 export default function Step2Page() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { profile, updateProfile, setCurrentStep } = useProfile();
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push(`/login?redirect=${encodeURIComponent('/builder/step-2')}`);
-    }
-  }, [user, authLoading, router]);
 
   const [headline, setHeadline] = useState(profile.headline || "");
   const [generatedHeadlines, setGeneratedHeadlines] = useState<string[]>([]);

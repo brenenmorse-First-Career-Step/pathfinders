@@ -81,23 +81,18 @@ export async function fetchUserResumeData(userId: string): Promise<ResumeData | 
         }
 
         return {
-            fullName: (user as { full_name?: string })?.full_name || 'Your Name',
-            email: (user as { email?: string })?.email || '',
-            phone: (profile as { phone?: string } | null)?.phone || undefined,
-            location: (profile as { location?: string } | null)?.location || undefined,
-            linkedinLink: (user as { linkedin_link?: string })?.linkedin_link || undefined,
-            headline: (profile as { headline?: string } | null)?.headline || undefined,
-            aboutText: (profile as { about_text?: string } | null)?.about_text || undefined,
-            highSchool: (profile as { high_school?: string } | null)?.high_school || undefined,
-            graduationYear: (profile as { graduation_year?: string } | null)?.graduation_year || undefined,
-            skills: (profile as { skills?: string[] } | null)?.skills || [],
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            experiences: (experiences as any[]) || [],
-            certifications: certifications?.map((cert: { name: string; issuer?: string; issuing_organization?: string; issue_date?: string; date_issued?: string }) => ({
-                name: cert.name,
-                issuer: cert.issuer || cert.issuing_organization,
-                date_issued: cert.issue_date || cert.date_issued,
-            })) || [],
+            fullName: user.full_name || 'Your Name',
+            email: user.email,
+            phone: profile?.phone || undefined,
+            location: profile?.location || undefined,
+            linkedinLink: user.linkedin_link || undefined,
+            headline: profile?.headline || undefined,
+            aboutText: profile?.about_text || undefined,
+            highSchool: profile?.high_school || undefined,
+            graduationYear: profile?.graduation_year || undefined,
+            skills: profile?.skills || [],
+            experiences: experiences || [],
+            certifications: certifications || [],
         };
     } catch (error) {
         console.error('Error fetching resume data:', error);
@@ -127,13 +122,10 @@ export async function uploadPDFToStorage(
         const supabase = createAdminClient();
         const fileName = `resume_${userId}_${Date.now()}.pdf`;
 
-        // Upload to Supabase Storage in user-specific folder for security
-        const userFolder = `${userId}/`;
-        const filePath = `${userFolder}${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-            .from('resume-assets')
-            .upload(filePath, pdfBlob, {
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('resumes')
+            .upload(fileName, pdfBlob, {
                 contentType: 'application/pdf',
                 upsert: false,
             });
@@ -143,17 +135,12 @@ export async function uploadPDFToStorage(
             return { url: null, error: uploadError };
         }
 
-        // Get signed URL for private bucket (valid for 1 year)
-        const { data: urlData, error: urlError } = await supabase.storage
-            .from('resume-assets')
-            .createSignedUrl(filePath, 31536000); // 1 year expiry
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from('resumes')
+            .getPublicUrl(fileName);
 
-        if (urlError || !urlData) {
-            console.error('Error creating signed URL:', urlError);
-            return { url: null, error: urlError || new Error('Failed to create signed URL') };
-        }
-
-        return { url: urlData.signedUrl, error: null };
+        return { url: urlData.publicUrl, error: null };
     } catch (error) {
         console.error('Error uploading PDF:', error);
         return { url: null, error: error as Error };

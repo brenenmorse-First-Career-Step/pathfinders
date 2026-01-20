@@ -9,16 +9,12 @@ import { useProfile, Experience } from "@/context/ProfileContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
 
 const EXPERIENCE_TYPES = [
-  { value: "job", label: "Job / Internship" },
-  { value: "volunteer", label: "Volunteer Work" },
-  { value: "extracurricular", label: "Extracurricular Activity" },
-  { value: "project", label: "Project" },
-  { value: "club", label: "Club / Organization" },
-  { value: "sport", label: "Sports" },
   { value: "fulltime", label: "Full-time" },
   { value: "parttime", label: "Part-time" },
+  { value: "remote", label: "Remote" },
   { value: "freelance", label: "Freelance" },
-  { value: "contract", label: "Contract" },
+  { value: "hybrid", label: "Hybrid" },
+  { value: "onsite", label: "Onsite" },
   { value: "other", label: "Other" },
 ];
 

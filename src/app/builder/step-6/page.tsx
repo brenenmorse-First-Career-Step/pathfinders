@@ -16,6 +16,7 @@ export default function Step6Page() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(profile.photoUrl);
+  const [showPhotoOnResume, setShowPhotoOnResume] = useState(profile.showPhotoOnResume);
   const [settings, setSettings] = useState(
     profile.photoSettings || {
       brightness: 100,
@@ -28,19 +29,18 @@ export default function Step6Page() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  const uploadPhotoToStorage = useCallback(async (file: File): Promise<string | null> => {
+  const uploadPhotoToStorage = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
       const supabase = createBrowserClient();
 
-      // Create unique filename in user-specific folder
+      // Create unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const userFolder = `${user?.id}/`;
-      const filePath = `${userFolder}profile-photos/${fileName}`;
+      const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
+      const filePath = `profile-photos/${fileName}`;
 
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { data, error: uploadError } = await supabase.storage
         .from('resume-assets')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -52,17 +52,12 @@ export default function Step6Page() {
         throw uploadError;
       }
 
-      // Get signed URL for private bucket (valid for 1 year)
-      const { data: urlData, error: urlError } = await supabase.storage
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
         .from('resume-assets')
-        .createSignedUrl(filePath, 31536000); // 1 year expiry
+        .getPublicUrl(filePath);
 
-      if (urlError || !urlData) {
-        console.error('Error creating signed URL:', urlError);
-        throw urlError || new Error('Failed to create signed URL');
-      }
-
-      return urlData.signedUrl;
+      return publicUrl;
     } catch (error) {
       console.error('Error uploading photo:', error);
       setError('Failed to upload photo. Please try again.');
@@ -70,7 +65,7 @@ export default function Step6Page() {
     } finally {
       setUploading(false);
     }
-  }, [user?.id, setError, setUploading]);
+  };
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,7 +97,7 @@ export default function Step6Page() {
         });
       }
     },
-    [uploadPhotoToStorage]
+    [user]
   );
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
@@ -124,7 +119,7 @@ export default function Step6Page() {
         });
       }
     }
-  }, [uploadPhotoToStorage]);
+  }, [user]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -404,24 +399,6 @@ export default function Step6Page() {
           >
             Skip for now
           </button>
-        </div>
-
-        {/* Right Column - Preview */}
-        <div className="flex-1 lg:max-w-xl">
-          <div className="sticky top-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-charcoal">Preview</h2>
-            </div>
-
-            <div className="transform scale-[0.6] origin-top lg:scale-[0.85] xl:scale-100 transition-transform">
-              <LiveResumePreview
-                {...profile}
-                photoUrl={photoUrl}
-                showPhoto={false}
-                variant="document"
-              />
-            </div>
-          </div>
         </div>
       </div>
     </BuilderLayout>

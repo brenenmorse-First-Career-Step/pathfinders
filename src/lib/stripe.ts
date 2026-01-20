@@ -164,8 +164,7 @@ export async function createCheckoutSession(userId: string, resumeId: string) {
             ],
             metadata: {
                 userId,
-                resumeId: resumeId || 'new-resume',
-                product_type: resumeId === 'roadmap_access' ? 'roadmap_access' : 'resume',
+                resumeId,
             },
             success_url: `${process.env.NEXT_PUBLIC_APP_URL}${STRIPE_CONFIG.SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${STRIPE_CONFIG.CANCEL_URL}`,

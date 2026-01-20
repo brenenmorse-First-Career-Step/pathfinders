@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import type { LinkedInContent } from '@/types/linkedin';
 
 export default function LinkedInContentPage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const [content, setContent] = useState<LinkedInContent | null>(null);
     const [loading, setLoading] = useState(true);
     const [copiedSection, setCopiedSection] = useState<string | null>(null);

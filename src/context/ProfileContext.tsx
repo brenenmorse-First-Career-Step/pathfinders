@@ -8,7 +8,7 @@ import { logger, dbLogger } from "@/lib/logger";
 // Types
 export interface Experience {
   id: string;
-  type: "job" | "volunteer" | "extracurricular" | "project" | "other" | "sport" | "club" | "fulltime" | "parttime" | "remote" | "freelance" | "hybrid" | "onsite" | "contract";
+  type: "job" | "volunteer" | "extracurricular" | "project" | "other" | "sport" | "club" | "fulltime" | "parttime" | "remote" | "freelance" | "hybrid" | "onsite";
   title: string;
   organization: string;
   description: string;
@@ -143,7 +143,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           .from('experiences')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('date_created', { ascending: false });
 
         if (experiencesError) {
           dbLogger.error(experiencesError, { context: 'loadExperiences', userId: user.id });
@@ -160,9 +160,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           dbLogger.error(certificationsError, { context: 'loadCertifications', userId: user.id });
         }
 
+        // Load user data for full name
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+
+        if (userError) {
+          dbLogger.error(userError, { context: 'loadUser', userId: user.id });
+        }
+
         // Map database data to profile state
         const loadedProfile: ProfileData = {
-          fullName: user.user_metadata?.full_name || "",
+          fullName: userData?.full_name || "",
           email: user.email || "",
           phone: profileData?.phone || "",
           location: profileData?.location || "",
@@ -175,16 +186,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           proudestAccomplishment: "", // Part of about_text
           futureGoals: "", // Part of about_text
           generatedAbout: profileData?.about_text || "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          experiences: experiencesData?.map((exp: any) => ({
+          experiences: experiencesData?.map(exp => ({
             id: exp.id,
             type: exp.type as Experience['type'],
             title: exp.title || "",
             organization: exp.organization || "",
-            description: exp.description || "",
+            description: exp.bullets?.join('\n') || "",
             startDate: exp.start_date || "",
             endDate: exp.end_date || "",
-            isCurrent: exp.current || false,
+            isCurrent: exp.is_current || false,
             location: exp.location || "",
           })) || [],
           skills: profileData?.skills || [],
@@ -198,12 +208,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             cropY: 0,
             zoom: 1,
           },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          certifications: certificationsData?.map((cert: any) => ({
+          certifications: certificationsData?.map(cert => ({
             id: cert.id,
             name: cert.name,
             issuer: cert.issuer || '',
-            dateIssued: cert.issue_date || '',
+            dateIssued: cert.date_issued || '',
           })) || [],
         };
 
@@ -281,7 +290,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       // Update profile table if there are changes
       if (Object.keys(profileUpdates).length > 0) {
-        profileUpdates.updated_at = new Date().toISOString();
+        profileUpdates.date_updated = new Date().toISOString();
 
         const { error: profileError } = await supabase
           .from('profile')
@@ -300,20 +309,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         dbLogger.operation('UPSERT', 'profile', { userId: user.id, fields: Object.keys(profileUpdates) });
       }
 
-      // Update full name and linkedin in auth metadata if changed
+      // Update full name and linkedin in users table if changed
       if (updates.fullName !== undefined || updates.linkedin !== undefined) {
-        const userUpdates: { data: { full_name?: string; linkedin_link?: string } } = { data: {} };
-        if (updates.fullName !== undefined) userUpdates.data.full_name = updates.fullName;
-        if (updates.linkedin !== undefined) userUpdates.data.linkedin_link = updates.linkedin;
+        const userUpdates: Record<string, string> = {};
+        if (updates.fullName !== undefined) userUpdates.full_name = updates.fullName;
+        if (updates.linkedin !== undefined) userUpdates.linkedin_link = updates.linkedin;
 
-        const { error: userError } = await supabase.auth.updateUser(userUpdates);
+        const { error: userError } = await supabase
+          .from('users')
+          .update(userUpdates)
+          .eq('id', user.id);
 
         if (userError) {
           dbLogger.error(userError, { context: 'updateUser', userId: user.id });
           throw userError;
         }
 
-        dbLogger.operation('UPDATE', 'auth.users', { userId: user.id, fields: Object.keys(userUpdates.data) });
+        dbLogger.operation('UPDATE', 'users', { userId: user.id, fields: Object.keys(userUpdates) });
       }
 
       // Handle experiences updates
@@ -335,10 +347,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             type: exp.type,
             title: exp.title,
             organization: exp.organization,
-            description: exp.description,
+            bullets: exp.description.split('\n').filter(b => b.trim()),
             start_date: exp.startDate,
             end_date: exp.endDate,
-            current: exp.isCurrent,
+            is_current: exp.isCurrent,
             location: exp.location,
           }));
 
@@ -373,7 +385,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             user_id: user.id,
             name: cert.name,
             issuer: cert.issuer || null,
-            issue_date: cert.dateIssued || null,
+            date_issued: cert.dateIssued || null,
           }))
 
           console.log('Saving certifications:', certificationsToInsert);

@@ -101,8 +101,8 @@ export default function SignUpPage() {
         email: formData.email,
       });
 
-      // Redirect to login
-      router.push('/login');
+      // Redirect to builder
+      router.push('/builder/step-1');
     } catch (error) {
       logger.error('Sign Up Form', error as Error, { email: formData.email });
       setServerError('An unexpected error occurred. Please try again.');
@@ -158,8 +158,8 @@ export default function SignUpPage() {
                   value={formData.fullName}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.fullName
-                    ? 'border-red-300 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-career-blue'
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
                     }`}
                   placeholder="John Doe"
                   disabled={loading}
@@ -181,8 +181,8 @@ export default function SignUpPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.email
-                    ? 'border-red-300 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-career-blue'
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
                     }`}
                   placeholder="john@example.com"
                   disabled={loading}
@@ -204,8 +204,8 @@ export default function SignUpPage() {
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.password
-                    ? 'border-red-300 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-career-blue'
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
                     }`}
                   placeholder="••••••••"
                   disabled={loading}
@@ -230,8 +230,8 @@ export default function SignUpPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.confirmPassword
-                    ? 'border-red-300 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-career-blue'
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
                     }`}
                   placeholder="••••••••"
                   disabled={loading}
@@ -253,8 +253,8 @@ export default function SignUpPage() {
                   value={formData.linkedinLink}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.linkedinLink
-                    ? 'border-red-300 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-career-blue'
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
                     }`}
                   placeholder="https://linkedin.com/in/yourprofile"
                   disabled={loading}

@@ -10,15 +10,10 @@ function SuccessContent() {
     const sessionId = searchParams.get('session_id');
 
     useEffect(() => {
-        // Give webhook a moment to process, then redirect
+        // Give webhook a moment to process
         const timer = setTimeout(() => {
             setIsVerifying(false);
-            // Force refresh of dashboard when user navigates there
-            if (typeof window !== 'undefined') {
-                // Store a flag to trigger refresh
-                sessionStorage.setItem('payment_completed', 'true');
-            }
-        }, 3000); // Increased to 3 seconds to ensure webhook processes
+        }, 2000);
 
         return () => clearTimeout(timer);
     }, []);

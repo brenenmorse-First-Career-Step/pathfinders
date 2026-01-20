@@ -8,6 +8,7 @@ export default function CheckoutPage() {
     const router = useRouter();
     const { user } = useAuth();
     const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         if (!user) {
@@ -21,6 +22,7 @@ export default function CheckoutPage() {
 
     const createCheckoutSession = async () => {
         try {
+            setIsLoading(true);
             setError(null);
 
             const response = await fetch('/api/create-checkout', {
@@ -45,6 +47,7 @@ export default function CheckoutPage() {
         } catch (err) {
             console.error('Checkout error:', err);
             setError(err instanceof Error ? err.message : 'An error occurred');
+            setIsLoading(false);
         }
     };
 

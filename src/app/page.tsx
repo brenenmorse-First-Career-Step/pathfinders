@@ -437,10 +437,16 @@ export default function HomePage() {
               Home
             </Link>
             <Link
-              href="/builder/step-1"
+              href="/linkedin-builder"
               className="text-sm font-semibold text-white hover:text-career-blue-light transition-colors uppercase tracking-wide"
             >
-              Builder
+              LinkedIn Build
+            </Link>
+            <Link
+              href="/resume-builder"
+              className="text-sm font-semibold text-white hover:text-career-blue-light transition-colors uppercase tracking-wide"
+            >
+              Resume Build
             </Link>
             <Link
               href="/career-roadmap"

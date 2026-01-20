@@ -4,7 +4,7 @@ interface Experience {
     type: string;
     title: string;
     organization: string;
-    description: string;
+    bullets: string[];
 }
 
 interface ResumePreviewProps {
@@ -109,15 +109,18 @@ export function ResumePreview({
                                     <p className="text-sm italic text-gray-700 mb-2">
                                         {exp.organization} • {exp.type.charAt(0).toUpperCase() + exp.type.slice(1)}
                                     </p>
-                                    {exp.description && (
-                                        <div className="text-sm text-gray-800 ml-4 space-y-1">
-                                            {exp.description.split('\n').map((line: string, i: number) => (
-                                                <div key={i} className="flex items-start">
+                                    {exp.bullets && exp.bullets.length > 0 && (
+                                        <ul className="space-y-1">
+                                            {exp.bullets.map((bullet, bulletIndex) => (
+                                                <li
+                                                    key={bulletIndex}
+                                                    className="text-sm text-gray-800 ml-4 flex items-start"
+                                                >
                                                     <span className="mr-2">•</span>
-                                                    <span>{line}</span>
-                                                </div>
+                                                    <span>{bullet}</span>
+                                                </li>
                                             ))}
-                                        </div>
+                                        </ul>
                                     )}
                                 </div>
                             ))}

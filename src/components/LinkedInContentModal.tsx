@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import type { LinkedInContent } from '@/types/linkedin';
 
 interface LinkedInContentModalProps {
@@ -73,14 +72,11 @@ export default function LinkedInContentModal({
                 {(userName || userPhoto) && (
                     <div className="flex items-center gap-4 mb-6 p-4 bg-gradient-to-r from-[#0077B5]/10 to-[#00A0DC]/10 rounded-xl border border-[#0077B5]/20">
                         {userPhoto && (
-                            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#0077B5]">
-                                <Image
-                                    src={userPhoto}
-                                    alt={userName || 'Profile'}
-                                    fill
-                                    className="object-cover"
-                                />
-                            </div>
+                            <img
+                                src={userPhoto}
+                                alt={userName || 'Profile'}
+                                className="w-16 h-16 rounded-full object-cover border-2 border-[#0077B5]"
+                            />
                         )}
                         <div>
                             {userName && (
