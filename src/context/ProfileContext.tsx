@@ -161,14 +161,39 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
 
         // Load user data for full name
-        const { data: userData, error: userError } = await supabase
+        let userData: { full_name?: string } | null = null;
+        const { data: loadedUserData, error: userError } = await supabase
           .from('users')
           .select('full_name')
           .eq('id', user.id)
           .single();
 
         if (userError) {
-          dbLogger.error(userError, { context: 'loadUser', userId: user.id });
+          // If user doesn't exist, create it (trigger might have failed)
+          if (userError.code === 'PGRST116' || userError.message?.includes('not present')) {
+            logger.info('Profile Context', 'User record not found, creating it', { userId: user.id });
+            const { error: insertError } = await supabase.from('users').insert({
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || '',
+              linkedin_link: user.user_metadata?.linkedin_link || null,
+            });
+            if (insertError) {
+              dbLogger.error(insertError, { context: 'createUserRecord', userId: user.id });
+            } else {
+              // Retry loading user data
+              const { data: retryData } = await supabase
+                .from('users')
+                .select('full_name')
+                .eq('id', user.id)
+                .single();
+              userData = retryData;
+            }
+          } else {
+            dbLogger.error(userError, { context: 'loadUser', userId: user.id });
+          }
+        } else {
+          userData = loadedUserData;
         }
 
         // Map database data to profile state
@@ -286,6 +311,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       if (updates.photoEnhancedUrl !== undefined) {
         profileUpdates.photo_enhanced_url = updates.photoEnhancedUrl;
+      }
+
+      // Ensure user record exists before saving profile (foreign key constraint)
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (!existingUser) {
+        // User record doesn't exist, create it first
+        logger.info('Profile Context', 'User record not found, creating it before saving profile', { userId: user.id });
+        const { error: userInsertError } = await supabase.from('users').insert({
+          id: user.id,
+          email: user.email || '',
+          full_name: updates.fullName || user.user_metadata?.full_name || '',
+          linkedin_link: updates.linkedin || user.user_metadata?.linkedin_link || null,
+        });
+        if (userInsertError) {
+          dbLogger.error(userInsertError, { context: 'createUserRecord', userId: user.id });
+          throw new Error('Failed to create user record. Please try again.');
+        }
       }
 
       // Update profile table if there are changes
