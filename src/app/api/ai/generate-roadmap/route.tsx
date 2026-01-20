@@ -236,6 +236,7 @@ async function createInfographicImage(
                         color: '#1a1a1a',
                         marginBottom: '60px',
                         textAlign: 'center',
+                        display: 'flex',
                     }}
                 >
                     {careerName} Career Roadmap
@@ -262,6 +263,7 @@ async function createInfographicImage(
                             height: '4px',
                             backgroundColor: '#3b82f6',
                             zIndex: 0,
+                            display: 'flex',
                         }}
                     />
 
@@ -308,6 +310,7 @@ async function createInfographicImage(
                                             fontSize: 42,
                                             fontWeight: 'bold',
                                             color: '#ffffff',
+                                            display: 'block',
                                         }}
                                     >
                                         {step.number}
@@ -327,7 +330,7 @@ async function createInfographicImage(
                                     }}
                                 >
                                     {titleLines.map((line, lineIndex) => (
-                                        <div key={lineIndex}>{line}</div>
+                                        <div key={lineIndex} style={{ display: 'flex' }}>{line}</div>
                                     ))}
                                 </div>
                             </div>
@@ -377,6 +380,7 @@ async function createMilestoneRoadmapImage(
                         color: '#1a1a1a',
                         textAlign: 'center',
                         marginBottom: '20px',
+                        display: 'flex',
                     }}
                 >
                     {careerName}
@@ -392,6 +396,7 @@ async function createMilestoneRoadmapImage(
                         position: 'absolute',
                         top: '40px',
                         right: '50px',
+                        display: 'flex',
                     }}
                 >
                     {careerName}
@@ -446,6 +451,7 @@ async function createMilestoneRoadmapImage(
                                         border: '2px solid #2563eb',
                                         borderRadius: '4px',
                                         marginBottom: '30px',
+                                        display: 'flex',
                                     }}
                                 />
 
@@ -469,6 +475,7 @@ async function createMilestoneRoadmapImage(
                                             fontSize: 32,
                                             fontWeight: 'bold',
                                             color: '#ffffff',
+                                            display: 'block',
                                         }}
                                     >
                                         {step.number}
@@ -489,7 +496,7 @@ async function createMilestoneRoadmapImage(
                                     }}
                                 >
                                     {titleLines.map((line, lineIndex) => (
-                                        <div key={lineIndex}>{line}</div>
+                                        <div key={lineIndex} style={{ display: 'flex' }}>{line}</div>
                                     ))}
                                 </div>
                             </div>
@@ -509,6 +516,7 @@ async function createMilestoneRoadmapImage(
                             transform: 'rotate(-25deg)',
                             transformOrigin: 'left bottom',
                             zIndex: 0,
+                            display: 'flex',
                         }}
                     />
                 </div>
