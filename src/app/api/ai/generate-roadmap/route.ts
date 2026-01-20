@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import { createCanvas, loadImage } from 'canvas';
 import type { RoadmapResponse, CareerRoadmap } from '@/types/roadmap';
 
 const openai = new OpenAI({
@@ -128,32 +129,19 @@ Return ONLY a valid JSON object with this exact structure:
             }))
         };
         
-        // Create simple step list for prompt
-        const stepsList = roadmapStructure.steps.map(step => `${step.number}. ${step.title}`).join(' | ');
-        
-        const infographicPrompt = `Create a simple, clean career roadmap infographic with perfectly readable text.
+        // Generate visual template WITHOUT text - we'll add text programmatically
+        const infographicPrompt = `Create a simple, clean career roadmap visual template. 
 
-CRITICAL TEXT REQUIREMENTS (must be large, clear, readable):
-Title at top: "${roadmapStructure.careerName} Career Roadmap"
-Steps: ${stepsList}
+ABSOLUTELY NO TEXT - this is a pure visual template only.
 
-Design Instructions:
-- Simple horizontal layout with white background
-- ${roadmapStructure.totalSteps} numbered circles or boxes arranged left to right
-- Minimal graphics - just simple shapes, no complex visuals
-- Text is the main focus, not graphics
-- Each step has: large number + short title text
-- Use simple connecting line between steps
-- Professional colors: light blue or teal accents only
-- Maximum simplicity - prioritize text readability over visual complexity
-
-Text Format:
-- Title: Very large bold black text at top
-- Each step: Large number (1, 2, 3...) in bold + step title in bold text below it
-- All text must be black or dark blue on white background
-- Large font sizes - text should dominate the image
-- Simple sans-serif fonts
-- High contrast for maximum readability`;
+Design:
+- Wide horizontal layout (landscape format) with white background
+- ${roadmapStructure.totalSteps} simple circles or rounded boxes arranged evenly from left to right
+- Simple horizontal line or path connecting all ${roadmapStructure.totalSteps} shapes
+- Professional colors: light blue or teal for shapes and connecting line
+- Clean, minimalist design
+- Maximum simplicity - just geometric shapes and lines
+- NO text, NO words, NO letters, NO numbers - pure visual structure only`;
 
         const infographicResponse = await openai.images.generate({
             model: 'dall-e-3',
@@ -163,41 +151,43 @@ Text Format:
             n: 1,
         });
 
-        const infographicUrl = infographicResponse.data?.[0]?.url;
-        if (!infographicUrl) {
+        const infographicBaseUrl = infographicResponse.data?.[0]?.url;
+        if (!infographicBaseUrl) {
             throw new Error('Failed to generate infographic');
         }
 
+        // Add text programmatically using canvas
+        console.log('Adding text to infographic...');
+        const infographicBuffer = await addTextToInfographic(
+            infographicBaseUrl,
+            roadmapStructure.careerName,
+            roadmapStructure.steps
+        );
+        
+        // Upload the image with text
+        const infographicUrl = await uploadImageToStorage(
+            infographicBuffer,
+            userId,
+            'infographic'
+        );
+
         console.log('Generating milestone roadmap...');
         
-        // Create simple step list for milestone roadmap
-        const milestoneStepsList = roadmapStructure.steps.map(step => `${step.number}. ${step.title}`).join(' | ');
-        
-        const milestonePrompt = `Create a simple, clean career milestone roadmap with perfectly readable text.
+        // Generate visual template WITHOUT text - we'll add text programmatically
+        const milestonePrompt = `Create a simple, clean career milestone roadmap visual template.
 
-CRITICAL TEXT REQUIREMENTS (must be large, clear, readable):
-Title at top: "${roadmapStructure.careerName}"
-Finish line at top: "${roadmapStructure.careerName}"
-Steps: ${milestoneStepsList}
+ABSOLUTELY NO TEXT - this is a pure visual template only.
 
-Design Instructions:
-- Simple ascending staircase layout with white background
-- ${roadmapStructure.totalSteps} rectangular steps from bottom-left to top-right
-- Minimal graphics - just simple rectangular blocks, no complex visuals
-- Text is the main focus, not graphics
-- Each step has: large number + short title text
-- Use simple connecting line between steps
-- Professional colors: light blue or teal accents only
-- Maximum simplicity - prioritize text readability over visual complexity
-
-Text Format:
-- Title: Very large bold black text at top
-- Finish line: Large bold text at top destination
-- Each step: Large number (1, 2, 3...) in bold + step title in bold text on or next to step
-- All text must be black or dark blue on white/light background
-- Large font sizes - text should dominate the image
-- Simple sans-serif fonts
-- High contrast for maximum readability`;
+Design:
+- Wide landscape format with white background
+- Simple ascending staircase or progression path
+- ${roadmapStructure.totalSteps} rectangular blocks or steps from bottom-left to top-right
+- Each step progressively larger/higher
+- Simple connecting line or path between steps
+- Professional colors: light blue or teal gradient
+- Clean, minimalist design
+- Maximum simplicity - just geometric shapes
+- NO text, NO words, NO letters, NO numbers - pure visual structure only`;
 
         const milestoneResponse = await openai.images.generate({
             model: 'dall-e-3',
@@ -207,23 +197,29 @@ Text Format:
             n: 1,
         });
 
-        const milestoneRoadmapUrl = milestoneResponse.data?.[0]?.url;
-        if (!milestoneRoadmapUrl) {
+        const milestoneBaseUrl = milestoneResponse.data?.[0]?.url;
+        if (!milestoneBaseUrl) {
             throw new Error('Failed to generate milestone roadmap');
         }
 
-        // Download images and upload to Supabase storage
-        console.log('Uploading images to storage...');
-        const infographicStorageUrl = await uploadImageToStorage(
-            infographicUrl,
-            userId,
-            'infographic'
+        // Add text programmatically using canvas
+        console.log('Adding text to milestone roadmap...');
+        const milestoneBuffer = await addTextToMilestoneRoadmap(
+            milestoneBaseUrl,
+            roadmapStructure.careerName,
+            roadmapStructure.steps
         );
-        const milestoneStorageUrl = await uploadImageToStorage(
-            milestoneRoadmapUrl,
+        
+        // Upload the image with text
+        const milestoneRoadmapUrl = await uploadImageToStorage(
+            milestoneBuffer,
             userId,
             'milestone'
         );
+
+        // Images are already uploaded, use the URLs directly
+        const infographicStorageUrl = infographicUrl;
+        const milestoneStorageUrl = milestoneRoadmapUrl;
 
         // Save roadmap to database
         console.log('Saving roadmap to database...');
@@ -270,21 +266,204 @@ Text Format:
     }
 }
 
-async function uploadImageToStorage(
+async function addTextToInfographic(
     imageUrl: string,
+    careerName: string,
+    steps: Array<{ number: number; title: string }>
+): Promise<Buffer> {
+    try {
+        // Load the base image
+        const image = await loadImage(imageUrl);
+        const width = 1792;
+        const height = 1024;
+
+        // Create canvas
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+
+        // Draw the base image
+        ctx.drawImage(image, 0, 0, width, height);
+
+        // Set text properties
+        ctx.fillStyle = '#1a1a1a'; // Dark text
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        // Draw main title at top
+        ctx.font = 'bold 64px Arial, sans-serif';
+        ctx.fillText(`${careerName} Career Roadmap`, width / 2, 40);
+
+        // Calculate positions for steps (horizontal timeline)
+        const stepSpacing = width / (steps.length + 1);
+        const stepY = height / 2 + 100; // Below center
+
+        // Draw step numbers and titles
+        steps.forEach((step, index) => {
+            const stepX = stepSpacing * (index + 1);
+
+            // Draw step number in circle
+            ctx.fillStyle = '#2563eb'; // Blue
+            ctx.beginPath();
+            ctx.arc(stepX, stepY - 20, 40, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Step number text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 36px Arial, sans-serif';
+            ctx.fillText(step.number.toString(), stepX, stepY - 38);
+
+            // Step title (wrap if too long)
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 32px Arial, sans-serif';
+            const maxWidth = stepSpacing * 0.8;
+            const words = step.title.split(' ');
+            let line = '';
+            let y = stepY + 40;
+
+            words.forEach((word) => {
+                const testLine = line + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && line !== '') {
+                    ctx.fillText(line, stepX, y);
+                    line = word + ' ';
+                    y += 40;
+                } else {
+                    line = testLine;
+                }
+            });
+            ctx.fillText(line, stepX, y);
+        });
+
+        // Convert to buffer
+        return canvas.toBuffer('image/png');
+    } catch (error) {
+        console.error('Error adding text to infographic:', error);
+        // Fallback: download original image
+        const imageResponse = await fetch(imageUrl);
+        const imageBlob = await imageResponse.blob();
+        const arrayBuffer = await imageBlob.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+    }
+}
+
+async function addTextToMilestoneRoadmap(
+    imageUrl: string,
+    careerName: string,
+    steps: Array<{ number: number; title: string }>
+): Promise<Buffer> {
+    try {
+        // Load the base image
+        const image = await loadImage(imageUrl);
+        const width = 1792;
+        const height = 1024;
+
+        // Create canvas
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+
+        // Draw the base image
+        ctx.drawImage(image, 0, 0, width, height);
+
+        // Set text properties
+        ctx.fillStyle = '#1a1a1a'; // Dark text
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        // Draw main title at top
+        ctx.font = 'bold 64px Arial, sans-serif';
+        ctx.fillText(careerName, width / 2, 30);
+
+        // Draw finish line label at top right
+        ctx.font = 'bold 48px Arial, sans-serif';
+        ctx.fillText(careerName, width - 200, 30);
+
+        // Calculate positions for steps (ascending staircase)
+        const startX = width * 0.15;
+        const endX = width * 0.85;
+        const startY = height * 0.7;
+        const endY = height * 0.2;
+        const stepCount = steps.length;
+
+        // Draw step numbers and titles
+        steps.forEach((step, index) => {
+            const progress = index / (stepCount - 1);
+            const stepX = startX + (endX - startX) * progress;
+            const stepY = startY - (startY - endY) * progress;
+
+            // Draw step number in circle
+            ctx.fillStyle = '#2563eb'; // Blue
+            ctx.beginPath();
+            ctx.arc(stepX, stepY, 35, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Step number text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px Arial, sans-serif';
+            ctx.fillText(step.number.toString(), stepX, stepY - 16);
+
+            // Step title (to the right of number)
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 28px Arial, sans-serif';
+            ctx.textAlign = 'left';
+            
+            // Wrap text if needed
+            const maxWidth = 300;
+            const words = step.title.split(' ');
+            let line = '';
+            let y = stepY - 10;
+
+            words.forEach((word) => {
+                const testLine = line + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && line !== '') {
+                    ctx.fillText(line, stepX + 50, y);
+                    line = word + ' ';
+                    y += 35;
+                } else {
+                    line = testLine;
+                }
+            });
+            ctx.fillText(line, stepX + 50, y);
+            ctx.textAlign = 'center';
+        });
+
+        // Convert to buffer
+        return canvas.toBuffer('image/png');
+    } catch (error) {
+        console.error('Error adding text to milestone roadmap:', error);
+        // Fallback: download original image
+        const imageResponse = await fetch(imageUrl);
+        const imageBlob = await imageResponse.blob();
+        const arrayBuffer = await imageBlob.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+    }
+}
+
+async function uploadImageToStorage(
+    imageUrl: string | Buffer,
     userId: string,
     type: 'infographic' | 'milestone'
 ): Promise<string> {
     try {
-        // Download the image
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) {
-            throw new Error('Failed to download image from OpenAI');
-        }
+        let buffer: Buffer;
 
-        const imageBlob = await imageResponse.blob();
-        const arrayBuffer = await imageBlob.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        // If it's a base64 string (from canvas), decode it
+        if (typeof imageUrl === 'string' && imageUrl.startsWith('data:image')) {
+            const base64Data = imageUrl.split(',')[1];
+            buffer = Buffer.from(base64Data, 'base64');
+        } else if (typeof imageUrl === 'string') {
+            // It's a URL, download it
+            const imageResponse = await fetch(imageUrl);
+            if (!imageResponse.ok) {
+                throw new Error('Failed to download image');
+            }
+            const imageBlob = await imageResponse.blob();
+            const arrayBuffer = await imageBlob.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
+        } else {
+            // It's already a Buffer
+            buffer = imageUrl;
+        }
 
         // Create unique filename
         const timestamp = Date.now();
@@ -313,8 +492,11 @@ async function uploadImageToStorage(
         return publicUrl;
     } catch (error) {
         console.error('Error uploading image to storage:', error);
-        // Return original URL as fallback
-        return imageUrl;
+        // If it's a string URL, return it; otherwise throw
+        if (typeof imageUrl === 'string') {
+            return imageUrl;
+        }
+        throw error;
     }
 }
 
