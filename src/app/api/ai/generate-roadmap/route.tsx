@@ -610,8 +610,7 @@ async function generateMilestoneRoadmapImage(
                                 <div
                                     style={{
                                         position: 'absolute',
-                                        left: textSide === 'left' ? `${textOffsetX}px` : 'auto',
-                                        right: textSide === 'right' ? `${-textOffsetX}px` : 'auto',
+                                        left: `${textOffsetX}px`,
                                         top: '50%',
                                         transform: textSide === 'left' 
                                             ? 'translateX(-100%) translateY(-50%)' 
