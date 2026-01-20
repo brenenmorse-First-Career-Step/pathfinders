@@ -312,6 +312,8 @@ async function createInfographicImage(
                                         color: '#1a1a1a',
                                         textAlign: 'center',
                                         maxWidth: `${(stepSpacing * 0.9 / width) * 100}%`,
+                                        display: 'flex',
+                                        flexDirection: 'column',
                                     }}
                                 >
                                     {titleLines.map((line, lineIndex) => (
@@ -462,6 +464,8 @@ async function createMilestoneRoadmapImage(
                                         textAlign: 'left',
                                         marginLeft: '80px',
                                         maxWidth: '350px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
                                     }}
                                 >
                                     {titleLines.map((line, lineIndex) => (
