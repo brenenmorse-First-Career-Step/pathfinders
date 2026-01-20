@@ -115,7 +115,7 @@ Return ONLY a valid JSON object with this exact structure:
         // Generate formatted content
         const formattedContent = formatRoadmapContent(roadmapData);
 
-        // Generate two images using DALL-E with structured prompts
+        // Generate two images using DALL-E with readable text
         console.log('Generating infographic...');
         
         // Create structured roadmap data for prompt
@@ -128,9 +128,37 @@ Return ONLY a valid JSON object with this exact structure:
             }))
         };
         
+        // Create step labels for the infographic
+        const stepLabels = roadmapStructure.steps.map(step => `Step ${step.number}: ${step.title}`).join(' | ');
+        
+        const infographicPrompt = `Create a professional, clean career roadmap infographic titled "${roadmapStructure.careerName} Career Roadmap". 
+
+Design a horizontal timeline infographic flowing left to right with ${roadmapStructure.totalSteps} milestone markers. 
+
+REQUIRED TEXT (must be large, clear, and perfectly readable):
+- Main title at top: "${roadmapStructure.careerName} Career Roadmap" in large bold text
+- For each of the ${roadmapStructure.totalSteps} milestones, include clear readable labels: ${stepLabels}
+
+Visual Design:
+- Horizontal timeline layout with connecting path
+- ${roadmapStructure.totalSteps} distinct milestone markers (circles or geometric shapes) evenly spaced
+- Professional color scheme: blues, teals, purples
+- Clean, modern infographic style
+- Light background with ample white space
+- Each milestone clearly labeled with step number and title
+- Large, bold, readable fonts for all text
+- Professional PowerPoint presentation template aesthetic
+
+Text Requirements:
+- All text must be large, clear, and perfectly readable
+- Use bold, sans-serif fonts
+- High contrast between text and background
+- Text labels positioned clearly next to or inside milestone markers
+- Main title prominently displayed at the top center`;
+
         const infographicResponse = await openai.images.generate({
             model: 'dall-e-3',
-            prompt: `Create a professional career roadmap infographic visual template for ${roadmapStructure.careerName}. Design a horizontal timeline with ${roadmapStructure.totalSteps} milestone markers flowing left to right. Use clean geometric shapes, professional blues/teals/purples color scheme, connecting path between milestones, light background with white space. CRITICAL: NO TEXT, NO WORDS, NO LETTERS - this is a pure visual template with only geometric shapes and lines. Minimalist professional PowerPoint template style.`,
+            prompt: infographicPrompt,
             size: '1024x1024',
             quality: 'standard',
             n: 1,
@@ -143,9 +171,38 @@ Return ONLY a valid JSON object with this exact structure:
 
         console.log('Generating milestone roadmap...');
         
+        // Create step labels for milestone roadmap
+        const milestoneStepLabels = roadmapStructure.steps.map(step => `Step ${step.number}: ${step.title}`).join(', ');
+        
+        const milestonePrompt = `Create a clean, modern career milestone roadmap graphic titled "${roadmapStructure.careerName}".
+
+Design an ascending staircase or progression path with ${roadmapStructure.totalSteps} distinct steps from bottom-left to top-right.
+
+REQUIRED TEXT (must be large, clear, and perfectly readable):
+- Main title at top: "${roadmapStructure.careerName}" in large bold text
+- Finish line label at the top: "${roadmapStructure.careerName}" 
+- Each step clearly labeled: ${milestoneStepLabels}
+
+Visual Design:
+- Ascending staircase or progression path with ${roadmapStructure.totalSteps} steps
+- Each step progressively larger/higher showing advancement
+- Professional color gradient: teal to blue to purple
+- Clean, minimalist design with ample white space
+- Simple geometric block shapes for steps
+- Connecting visual path between all steps
+- Finish line or destination point at the top
+
+Text Requirements:
+- All text must be large, clear, and perfectly readable
+- Use bold, sans-serif fonts with high contrast
+- Step labels clearly visible on or next to each step
+- Main title prominently displayed
+- Finish line clearly labeled with career name
+- Text positioned for maximum readability`;
+
         const milestoneResponse = await openai.images.generate({
             model: 'dall-e-3',
-            prompt: `Create a clean modern career milestone roadmap visual template for ${roadmapStructure.careerName}. Design an ascending staircase or progression path with ${roadmapStructure.totalSteps} distinct steps from bottom-left to top-right. Use professional teal-to-blue-to-purple gradient, simple geometric block shapes, connecting path, ample white space, minimalist design. CRITICAL: NO TEXT, NO WORDS, NO LETTERS - this is a pure visual template with only geometric shapes showing progression. Professional PowerPoint diagram style.`,
+            prompt: milestonePrompt,
             size: '1024x1024',
             quality: 'standard',
             n: 1,
