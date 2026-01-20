@@ -127,11 +127,13 @@ export default function ResumesPage() {
                 throw new Error('Not authenticated. Please log in again.');
             }
             
-            // Fetch all resumes for the user
+            // OLD WORKING APPROACH: Only show paid resumes (like old working code)
+            // Fetch only paid resumes for the user
             const { data, error } = await supabase
                 .from('resumes')
                 .select('*')
                 .eq('user_id', user.id)
+                .eq('status', 'paid')
                 .order('created_at', { ascending: false });
 
             if (error) {

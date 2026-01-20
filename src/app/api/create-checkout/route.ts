@@ -57,80 +57,10 @@ export async function POST() {
             );
         }
 
-        // Create or get existing resume record first (with 'locked' status)
-        // This ensures resume exists even if payment fails
-        let resumeId = 'new-resume';
-        
-        // Check if user already has a locked resume
-        const { data: existingResume } = await supabase
-            .from('resumes')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('status', 'locked')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (!existingResume) {
-            // Create new locked resume
-            const shareableLink = crypto.randomUUID();
-            // Use profile full_name first, then extract name from email, then fallback
-            const userName = profile.full_name || (user.email ? user.email.split('@')[0] : 'My');
-            
-            // Calculate next version number based on all existing resumes (including deleted ones)
-            const { data: existingResumes } = await supabase
-                .from('resumes')
-                .select('version')
-                .eq('user_id', user.id)
-                .order('version', { ascending: false })
-                .limit(1);
-            
-            const nextVersion = existingResumes && existingResumes.length > 0
-                ? ((existingResumes[0] as { version?: number })?.version || 0) + 1
-                : 1;
-            
-            console.log('Creating new locked resume:', {
-                userId: user.id,
-                userName,
-                shareableLink,
-                version: nextVersion,
-            });
-            
-            const { data: newResume, error: resumeError } = await supabase
-                .from('resumes')
-                .insert({
-                    user_id: user.id,
-                    title: `${userName} Resume`,
-                    status: 'locked',
-                    shareable_link: shareableLink,
-                    version: nextVersion,
-                })
-                .select('id, title, status, shareable_link, version')
-                .single();
-
-            if (resumeError) {
-                console.error('Resume creation error:', resumeError);
-                console.error('Error details:', {
-                    message: resumeError.message,
-                    code: resumeError.code,
-                    details: resumeError.details,
-                    hint: resumeError.hint,
-                });
-                return NextResponse.json(
-                    { error: `Failed to create resume record: ${resumeError.message}` },
-                    { status: 500 }
-                );
-            }
-            
-            console.log('Resume created successfully:', newResume);
-            resumeId = newResume.id;
-        } else {
-            console.log('Using existing locked resume:', existingResume.id);
-            resumeId = existingResume.id;
-        }
-
-        // Create Stripe checkout session with resume ID
-        const result = await createCheckoutSession(user.id, resumeId);
+        // OLD WORKING APPROACH: Don't create resume before payment
+        // Resume will be created by webhook AFTER payment succeeds
+        // Create Stripe checkout session (resumeId will be 'new-resume')
+        const result = await createCheckoutSession(user.id, 'new-resume');
 
         if ('error' in result) {
             return NextResponse.json(

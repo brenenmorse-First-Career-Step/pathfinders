@@ -127,22 +127,14 @@ export async function POST(request: NextRequest) {
                         break;
                     }
 
-                    // Handle resume payment (existing logic)
-                    // Get resume ID from metadata
-                    const resumeId = session.metadata?.resumeId;
-
-                    // Fetch user's profile to get full_name (not from users table)
-                    const { data: profile, error: profileError } = await supabase
+                    // Handle resume payment - OLD WORKING APPROACH
+                    // Create NEW resume with status 'paid' directly (like old working code)
+                    
+                    // Fetch user's profile data (for future use if needed)
+                    const { error: profileError } = await supabase
                         .from('profile')
-                        .select('full_name')
+                        .select('*')
                         .eq('user_id', userId)
-                        .single();
-
-                    // Fetch user's email from auth.users table
-                    const { data: authUser } = await supabase
-                        .from('users')
-                        .select('email')
-                        .eq('id', userId)
                         .single();
 
                     if (profileError) {
@@ -151,22 +143,25 @@ export async function POST(request: NextRequest) {
                             userId,
                             sessionId: session.id,
                         });
+                        // Continue anyway - we can use user.full_name as fallback
                     }
 
-                    // Use profile full_name first, then email, then fallback
-                    const userName = (profile as { full_name?: string } | null)?.full_name || 
-                                   (authUser as { email?: string } | null)?.email?.split('@')[0] || 
-                                   'My';
+                    // Fetch user's basic info
+                    const { data: user, error: userError } = await supabase
+                        .from('users')
+                        .select('full_name, email')
+                        .eq('id', userId)
+                        .single();
 
-                    // CRITICAL FIX: Update ALL locked resumes to paid when payment succeeds
-                    // Payment is a user-level entitlement (lifetime access), not per-resume
-                    paymentLogger.info('Updating all locked resumes to paid status', {
-                        userId,
-                        sessionId: session.id,
-                        resumeId,
-                    });
-                    
-                    // First, update user_payments table to record payment
+                    if (userError) {
+                        paymentLogger.error('Failed to fetch user info', {
+                            error: userError,
+                            userId,
+                            sessionId: session.id,
+                        });
+                    }
+
+                    // Update user_payments table to record payment
                     const { error: paymentError } = await supabase
                         .from('user_payments')
                         .upsert({
@@ -192,215 +187,100 @@ export async function POST(request: NextRequest) {
                             sessionId: session.id,
                         });
                     }
-                    
-                    // Then, update ALL locked resumes to paid status
-                    const updateData: { status: string; stripe_session_id: string } = { 
-                        status: 'paid',
-                        stripe_session_id: session.id,
-                    };
-                    const { data: updatedResumes, error: updateAllResumesError } = await supabase
+
+                    // Generate unique shareable link
+                    const shareableLink = crypto.randomUUID();
+
+                    // Calculate next version number
+                    const { data: existingResumes } = await supabase
+                        .from('resumes')
+                        .select('version')
+                        .eq('user_id', userId)
+                        .order('version', { ascending: false })
+                        .limit(1);
+
+                    const nextVersion = existingResumes && existingResumes.length > 0
+                        ? ((existingResumes[0] as { version?: number })?.version || 0) + 1
+                        : 1;
+
+                    // Create resume record with status 'paid' (OLD WORKING APPROACH)
+                    const { data: resume, error: resumeError } = await supabase
                         .from('resumes')
                         // @ts-expect-error - Supabase type inference issue with admin client
-                        .update(updateData)
-                        .eq('user_id', userId)
-                        .eq('status', 'locked')
-                        .select();
-
-                    if (updateAllResumesError) {
-                        paymentLogger.error('Failed to update all locked resumes', {
-                            error: updateAllResumesError,
-                            userId,
-                            sessionId: session.id,
-                            errorDetails: {
-                                message: updateAllResumesError.message,
-                                code: updateAllResumesError.code,
-                                details: updateAllResumesError.details,
-                                hint: updateAllResumesError.hint,
-                            },
-                        });
-                    } else {
-                        paymentLogger.info('Updated all locked resumes to paid status', {
-                            userId,
-                            sessionId: session.id,
-                            updatedCount: updatedResumes?.length || 0,
-                            resumeIds: updatedResumes?.map((r: ResumeRecord) => r.id) || [],
-                            updatedResumes: updatedResumes,
-                        });
-                    }
-
-                    let resume;
-
-                    if (resumeId && resumeId !== 'new-resume') {
-                        // First, try to find the resume by ID
-                        const { data: existingResume, error: fetchError } = await supabase
-                            .from('resumes')
-                            .select('id, status, version')
-                            .eq('id', resumeId)
-                            .eq('user_id', userId)
-                            .single() as { data: { id: string; status: string; version?: number } | null; error: unknown };
-
-                        if (fetchError || !existingResume) {
-                            paymentLogger.error('Resume not found for update', {
-                                error: fetchError,
-                                userId,
-                                resumeId,
-                                sessionId: session.id,
-                            });
-                            // Fall through to create new resume as fallback
-                        } else {
-                            // Update the specific resume that was paid for
-                            // Also update title if it was using email (fix existing resumes)
-                            const resumeUpdateData: { status: string; stripe_session_id: string; title?: string } = {
-                                status: 'paid',
-                                stripe_session_id: session.id,
-                            };
-                            if (userName !== 'My') {
-                                resumeUpdateData.title = `${userName} Resume`;
-                            }
-                            
-                            paymentLogger.info('Updating existing resume to paid status', {
-                                userId,
-                                resumeId,
-                                currentStatus: existingResume.status,
-                                sessionId: session.id,
-                            });
-                            
-                            const { data: updatedResume, error: updateError } = await supabase
-                                .from('resumes')
-                                // @ts-expect-error - Supabase type inference issue with admin client
-                                .update(resumeUpdateData)
-                                .eq('id', resumeId)
-                                .eq('user_id', userId)
-                                .select()
-                                .single() as { data: ResumeRecord | null; error: unknown };
-
-                            if (updateError || !updatedResume) {
-                                paymentLogger.error('Failed to update resume record', {
-                                    error: updateError,
-                                    userId,
-                                    resumeId,
-                                    sessionId: session.id,
-                                    errorDetails: updateError ? {
-                                        message: (updateError as { message?: string })?.message,
-                                        code: (updateError as { code?: string })?.code,
-                                        details: (updateError as { details?: string })?.details,
-                                        hint: (updateError as { hint?: string })?.hint,
-                                    } : undefined,
-                                });
-                                break;
-                            }
-                            
-                            paymentLogger.info('Resume updated successfully', {
-                                userId,
-                                resumeId: updatedResume.id,
-                                newStatus: updatedResume.status,
-                                sessionId: session.id,
-                            });
-                            
-                            resume = updatedResume;
-                        }
-                    }
-                    
-                    // If resume wasn't updated above, create new resume (fallback)
-                    if (!resume) {
-                        // Create new resume record (fallback if resumeId not provided)
-                        const shareableLink = crypto.randomUUID();
-
-                        // Calculate next version number
-                        const { data: existingResumes } = await supabase
-                            .from('resumes')
-                            .select('version')
-                            .eq('user_id', userId)
-                            .order('version', { ascending: false })
-                            .limit(1);
-
-                        const nextVersion = existingResumes && existingResumes.length > 0
-                            ? ((existingResumes[0] as { version?: number })?.version || 0) + 1
-                            : 1;
-
-                        const insertData = {
+                        .insert({
                             user_id: userId,
-                            title: `${userName} Resume`,
+                            title: `${(user as { full_name?: string } | null)?.full_name || 'My'} Resume`,
                             status: 'paid',
                             shareable_link: shareableLink,
                             stripe_session_id: session.id,
                             version: nextVersion,
-                            linkedin_content: null,
-                            pdf_url: null,
-                        };
-                        const { data: newResume, error: resumeError } = await supabase
-                            .from('resumes')
-                            // @ts-expect-error - Supabase type inference issue with admin client
-                            .insert(insertData)
-                            .select()
-                            .single();
+                            linkedin_content: null, // Will be generated later
+                            pdf_url: null, // Will be generated later
+                        })
+                        .select()
+                        .single() as { data: ResumeRecord | null; error: unknown };
 
-                        if (resumeError) {
-                            paymentLogger.error('Failed to create resume record', {
-                                error: resumeError,
-                                userId,
-                                sessionId: session.id,
-                            });
-                            break;
-                        }
-                        resume = newResume as ResumeRecord;
-                    }
-
-                    if (resume) {
-                        paymentLogger.info('Resume record updated/created successfully', {
+                    if (resumeError || !resume) {
+                        paymentLogger.error('Failed to create resume record', {
+                            error: resumeError,
                             userId,
-                            resumeId: resume?.id || '',
                             sessionId: session.id,
-                            shareableLink: resume?.shareable_link || null,
                         });
+                        break;
+                    }
+                    
+                    paymentLogger.info('Resume record created successfully', {
+                        userId,
+                        resumeId: resume.id,
+                        sessionId: session.id,
+                        shareableLink,
+                    });
 
-                        // Trigger PDF generation
-                        paymentLogger.info('Starting PDF generation', {
-                            userId,
-                            resumeId: resume?.id || '',
-                        });
+                    // Trigger PDF generation
+                    paymentLogger.info('Starting PDF generation', {
+                        userId,
+                        resumeId: resume.id,
+                    });
 
-                        try {
-                            // Import PDF generator dynamically to avoid edge runtime issues
-                            const { generateAndUploadResumePDF } = await import('@/lib/pdf/generator');
+                    try {
+                        // Import PDF generator dynamically to avoid edge runtime issues
+                        const { generateAndUploadResumePDF } = await import('@/lib/pdf/generator');
 
-                            const { pdfUrl, error: pdfError } = await generateAndUploadResumePDF(userId);
+                        const { pdfUrl, error: pdfError } = await generateAndUploadResumePDF(userId);
 
-                            if (pdfError) {
-                                paymentLogger.error('PDF generation failed', {
-                                    error: pdfError,
-                                    userId,
-                                    resumeId: resume?.id || '',
-                                });
-                            } else if (pdfUrl) {
-                                // Update resume with PDF URL
-                                const pdfUpdateData = { pdf_url: pdfUrl };
-                                const { error: updateError } = await supabase
-                                    .from('resumes')
-                                    // @ts-expect-error - Supabase type inference issue with admin client
-                                    .update(pdfUpdateData)
-                                    .eq('id', resume?.id || '');
-
-                                if (updateError) {
-                                    paymentLogger.error('Failed to update resume with PDF URL', {
-                                        error: updateError,
-                                        resumeId: resume?.id || '',
-                                    });
-                                } else {
-                                    paymentLogger.info('PDF generated and uploaded successfully', {
-                                        userId,
-                                        resumeId: resume?.id || '',
-                                        pdfUrl,
-                                    });
-                                }
-                            }
-                        } catch (pdfGenError) {
-                            paymentLogger.error('PDF generation error', {
-                                error: pdfGenError,
+                        if (pdfError) {
+                            paymentLogger.error('PDF generation failed', {
+                                error: pdfError,
                                 userId,
-                                resumeId: resume?.id || '',
+                                resumeId: resume.id,
                             });
+                        } else if (pdfUrl) {
+                            // Update resume with PDF URL
+                            const { error: updateError } = await supabase
+                                .from('resumes')
+                                // @ts-expect-error - Supabase type inference issue with admin client
+                                .update({ pdf_url: pdfUrl })
+                                .eq('id', resume.id);
+
+                            if (updateError) {
+                                paymentLogger.error('Failed to update resume with PDF URL', {
+                                    error: updateError,
+                                    resumeId: resume.id,
+                                });
+                            } else {
+                                paymentLogger.info('PDF generated and uploaded successfully', {
+                                    userId,
+                                    resumeId: resume.id,
+                                    pdfUrl,
+                                });
+                            }
                         }
+                    } catch (pdfGenError) {
+                        paymentLogger.error('PDF generation error', {
+                            error: pdfGenError,
+                            userId,
+                            resumeId: resume.id,
+                        });
                     }
 
                 } catch (error) {
