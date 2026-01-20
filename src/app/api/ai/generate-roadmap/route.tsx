@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import { createCanvas } from 'canvas';
+import { ImageResponse } from '@vercel/og';
 import type { RoadmapResponse, CareerRoadmap } from '@/types/roadmap';
 
 const openai = new OpenAI({
@@ -212,82 +212,185 @@ async function generateInfographicImage(
 ): Promise<Buffer> {
     const width = 1792;
     const height = 1024;
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
+    const stepSpacing = (width - 300) / (steps.length + 1);
 
-    // Background gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(1, '#f0f9ff');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
+    // Brand colors
+    const colors = {
+        careerBlue: '#1E88E5',
+        careerBlueDark: '#1565C0',
+        stepGreen: '#43A047',
+        optimismOrange: '#FB8C00',
+        softSky: '#E3F2FD',
+        charcoal: '#263238',
+    };
 
-    // Title
-    ctx.fillStyle = '#1a1a1a';
-    ctx.font = 'bold 72px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const titleText = `${careerName} Career Roadmap`;
-    ctx.fillText(titleText, width / 2, 60);
+    const imageResponse = new ImageResponse(
+        (
+            <div
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: `linear-gradient(135deg, #ffffff 0%, ${colors.softSky} 50%, #E8F5E9 100%)`,
+                    padding: '60px 80px',
+                }}
+            >
+                {/* Title with gradient */}
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        marginBottom: '40px',
+                    }}
+                >
+                    <div
+                        style={{
+                            fontSize: 80,
+                            fontWeight: 'bold',
+                            color: colors.careerBlue,
+                            textAlign: 'center',
+                            marginBottom: '10px',
+                            display: 'flex',
+                        }}
+                    >
+                        {careerName}
+                    </div>
+                    <div
+                        style={{
+                            fontSize: 48,
+                            fontWeight: '600',
+                            color: colors.charcoal,
+                            textAlign: 'center',
+                        }}
+                    >
+                        Career Roadmap
+                    </div>
+                </div>
 
-    // Timeline line
-    const timelineY = height / 2 + 100;
-    const startX = 150;
-    const endX = width - 150;
-    const lineWidth = endX - startX;
+                {/* Timeline Container */}
+                <div
+                    style={{
+                        position: 'relative',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        marginTop: '60px',
+                    }}
+                >
+                    {/* Connecting Line with gradient */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '150px',
+                            right: '150px',
+                            height: '8px',
+                            background: `linear-gradient(90deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
+                            borderRadius: '4px',
+                            zIndex: 0,
+                        }}
+                    />
 
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(startX, timelineY);
-    ctx.lineTo(endX, timelineY);
-    ctx.stroke();
+                    {/* Steps Container */}
+                    <div
+                        style={{
+                            position: 'relative',
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'space-around',
+                            alignItems: 'center',
+                            zIndex: 1,
+                        }}
+                    >
+                        {steps.map((step, index) => {
+                            // Alternate colors for visual interest
+                            const stepColor = index % 3 === 0 
+                                ? colors.careerBlue 
+                                : index % 3 === 1 
+                                ? colors.stepGreen 
+                                : colors.optimismOrange;
+                            
+                            const titleLines = wrapText(step.title, stepSpacing * 0.85, 32);
 
-    // Steps
-    const stepSpacing = lineWidth / (steps.length + 1);
-    steps.forEach((step, index) => {
-        const stepX = startX + stepSpacing * (index + 1);
+                            return (
+                                <div
+                                    key={step.number}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        zIndex: 1,
+                                    }}
+                                >
+                                    {/* Step Circle with shadow effect */}
+                                    <div
+                                        style={{
+                                            width: '120px',
+                                            height: '120px',
+                                            borderRadius: '50%',
+                                            background: `linear-gradient(135deg, ${stepColor} 0%, ${stepColor}dd 100%)`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            marginBottom: '30px',
+                                            boxShadow: `0 8px 24px ${stepColor}40`,
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                fontSize: 56,
+                                                fontWeight: 'bold',
+                                                color: '#ffffff',
+                                                display: 'flex',
+                                            }}
+                                        >
+                                            {step.number}
+                                        </span>
+                                    </div>
 
-        // Step circle
-        ctx.fillStyle = '#2563eb';
-        ctx.beginPath();
-        ctx.arc(stepX, timelineY, 50, 0, Math.PI * 2);
-        ctx.fill();
+                                    {/* Step Title */}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            maxWidth: `${stepSpacing * 0.85}px`,
+                                        }}
+                                    >
+                                        {titleLines.map((line, lineIndex) => (
+                                            <div
+                                                key={lineIndex}
+                                                style={{
+                                                    fontSize: 32,
+                                                    fontWeight: 'bold',
+                                                    color: colors.charcoal,
+                                                    textAlign: 'center',
+                                                    marginBottom: lineIndex < titleLines.length - 1 ? '8px' : '0',
+                                                    display: 'flex',
+                                                }}
+                                            >
+                                                {line}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        ),
+        {
+            width,
+            height,
+        }
+    );
 
-        // Step number
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 42px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(step.number.toString(), stepX, timelineY);
-
-        // Step title
-        ctx.fillStyle = '#1a1a1a';
-        ctx.font = 'bold 36px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        
-        // Wrap text if needed
-        const maxWidth = stepSpacing * 0.8;
-        const words = step.title.split(' ');
-        let line = '';
-        let y = timelineY + 80;
-        
-        words.forEach((word) => {
-            const testLine = line + word + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && line !== '') {
-                ctx.fillText(line, stepX, y);
-                line = word + ' ';
-                y += 45;
-            } else {
-                line = testLine;
-            }
-        });
-        ctx.fillText(line, stepX, y);
-    });
-
-    return canvas.toBuffer('image/png');
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    return Buffer.from(arrayBuffer);
 }
 
 async function generateMilestoneRoadmapImage(
@@ -296,93 +399,249 @@ async function generateMilestoneRoadmapImage(
 ): Promise<Buffer> {
     const width = 1792;
     const height = 1024;
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
 
-    // Background gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(1, '#f0f9ff');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
+    // Brand colors
+    const colors = {
+        careerBlue: '#1E88E5',
+        careerBlueDark: '#1565C0',
+        stepGreen: '#43A047',
+        optimismOrange: '#FB8C00',
+        softSky: '#E3F2FD',
+        charcoal: '#263238',
+    };
 
-    // Title
-    ctx.fillStyle = '#1a1a1a';
-    ctx.font = 'bold 72px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText(careerName, width / 2, 40);
+    const imageResponse = new ImageResponse(
+        (
+            <div
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: `linear-gradient(135deg, ${colors.softSky} 0%, #ffffff 30%, #E8F5E9 100%)`,
+                    padding: '50px',
+                    position: 'relative',
+                }}
+            >
+                {/* Title */}
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '40px',
+                    }}
+                >
+                    <div
+                        style={{
+                            fontSize: 76,
+                            fontWeight: 'bold',
+                            color: colors.careerBlue,
+                            display: 'flex',
+                        }}
+                    >
+                        {careerName}
+                    </div>
+                    {/* Finish Line Badge */}
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: 20,
+                                fontWeight: '600',
+                                color: colors.charcoal,
+                                marginBottom: '8px',
+                                display: 'flex',
+                            }}
+                        >
+                            FINISH LINE
+                        </div>
+                        <div
+                            style={{
+                                fontSize: 48,
+                                fontWeight: 'bold',
+                                color: colors.stepGreen,
+                                display: 'flex',
+                            }}
+                        >
+                            {careerName}
+                        </div>
+                    </div>
+                </div>
 
-    // Finish line label (top right)
-    ctx.font = 'bold 56px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText(careerName, width - 50, 40);
+                {/* Steps Container */}
+                <div
+                    style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        padding: '80px 150px',
+                    }}
+                >
+                    {/* Diagonal Path with gradient */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: '12%',
+                            bottom: '25%',
+                            width: '76%',
+                            height: '8px',
+                            background: `linear-gradient(135deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
+                            transform: 'rotate(-25deg)',
+                            transformOrigin: 'left bottom',
+                            borderRadius: '4px',
+                            zIndex: 0,
+                            boxShadow: `0 4px 12px ${colors.careerBlue}30`,
+                        }}
+                    />
 
-    // Diagonal path
-    const startX = width * 0.12;
-    const endX = width * 0.88;
-    const startY = height * 0.75;
-    const endY = height * 0.25;
+                    {/* Steps */}
+                    {steps.map((step, index) => {
+                        const progress = index / (steps.length - 1);
+                        const leftPercent = 12 + progress * 76;
+                        const topPercent = 75 - progress * 50;
+                        
+                        // Alternate colors for visual interest
+                        const stepColor = index % 3 === 0 
+                            ? colors.careerBlue 
+                            : index % 3 === 1 
+                            ? colors.stepGreen 
+                            : colors.optimismOrange;
+                        
+                        const titleLines = wrapText(step.title, 380, 28);
+
+                        return (
+                            <div
+                                key={step.number}
+                                style={{
+                                    position: 'absolute',
+                                    left: `${leftPercent}%`,
+                                    top: `${topPercent}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    zIndex: 1,
+                                }}
+                            >
+                                {/* Step Block with gradient */}
+                                <div
+                                    style={{
+                                        width: '140px',
+                                        height: '70px',
+                                        background: `linear-gradient(135deg, ${stepColor}15 0%, ${stepColor}25 100%)`,
+                                        border: `3px solid ${stepColor}`,
+                                        borderRadius: '12px',
+                                        marginBottom: '35px',
+                                        display: 'flex',
+                                        boxShadow: `0 6px 20px ${stepColor}30`,
+                                    }}
+                                />
+
+                                {/* Step Number Circle */}
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        top: '-35px',
+                                        width: '70px',
+                                        height: '70px',
+                                        borderRadius: '50%',
+                                        background: `linear-gradient(135deg, ${stepColor} 0%, ${stepColor}dd 100%)`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: `0 6px 20px ${stepColor}40`,
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            fontSize: 40,
+                                            fontWeight: 'bold',
+                                            color: '#ffffff',
+                                            display: 'flex',
+                                        }}
+                                    >
+                                        {step.number}
+                                    </span>
+                                </div>
+
+                                {/* Step Title */}
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'flex-start',
+                                        marginLeft: '90px',
+                                        maxWidth: '380px',
+                                    }}
+                                >
+                                    {titleLines.map((line, lineIndex) => (
+                                        <div
+                                            key={lineIndex}
+                                            style={{
+                                                fontSize: 28,
+                                                fontWeight: 'bold',
+                                                color: colors.charcoal,
+                                                textAlign: 'left',
+                                                marginBottom: lineIndex < titleLines.length - 1 ? '6px' : '0',
+                                                display: 'flex',
+                                            }}
+                                        >
+                                            {line}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        ),
+        {
+            width,
+            height,
+        }
+    );
+
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
+
+// Helper function to wrap text
+function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
+    // Simple approximation: ~0.6 * fontSize per character
+    const avgCharWidth = fontSize * 0.6;
+    const maxChars = Math.floor(maxWidth / avgCharWidth);
     
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
 
-    // Steps along diagonal path
-    steps.forEach((step, index) => {
-        const progress = index / (steps.length - 1);
-        const stepX = startX + (endX - startX) * progress;
-        const stepY = startY - (startY - endY) * progress;
-
-        // Step block
-        ctx.fillStyle = '#dbeafe';
-        ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 2;
-        ctx.fillRect(stepX - 60, stepY - 30, 120, 60);
-        ctx.strokeRect(stepX - 60, stepY - 30, 120, 60);
-
-        // Step number circle
-        ctx.fillStyle = '#2563eb';
-        ctx.beginPath();
-        ctx.arc(stepX, stepY - 30, 30, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 32px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(step.number.toString(), stepX, stepY - 30);
-
-        // Step title (to the right of the block)
-        ctx.fillStyle = '#1a1a1a';
-        ctx.font = 'bold 32px Arial';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        
-        // Wrap text if needed
-        const maxWidth = 350;
-        const words = step.title.split(' ');
-        let line = '';
-        let y = stepY;
-        
-        words.forEach((word) => {
-            const testLine = line + word + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && line !== '') {
-                ctx.fillText(line, stepX + 80, y);
-                line = word + ' ';
-                y += 40;
-            } else {
-                line = testLine;
+    words.forEach((word) => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (testLine.length <= maxChars) {
+            currentLine = testLine;
+        } else {
+            if (currentLine) {
+                lines.push(currentLine);
             }
-        });
-        ctx.fillText(line, stepX + 80, y);
+            currentLine = word;
+        }
     });
 
-    return canvas.toBuffer('image/png');
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+
+    return lines.length > 0 ? lines : [text];
 }
 
 
