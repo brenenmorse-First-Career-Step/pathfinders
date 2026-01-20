@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import { createCanvas } from 'canvas';
 import type { RoadmapResponse, CareerRoadmap } from '@/types/roadmap';
 
 const openai = new OpenAI({
@@ -115,10 +116,10 @@ Return ONLY a valid JSON object with this exact structure:
         // Generate formatted content
         const formattedContent = formatRoadmapContent(roadmapData);
 
-        // Generate roadmap images using DALL-E
-        console.log('Creating infographic with DALL-E...');
+        // Generate roadmap images using Canvas
+        console.log('Creating infographic with Canvas...');
         
-        // Create structured roadmap data for prompts
+        // Create structured roadmap data
         const roadmapStructure = {
             careerName: roadmapData.careerName,
             totalSteps: roadmapData.steps.length,
@@ -128,32 +129,30 @@ Return ONLY a valid JSON object with this exact structure:
             }))
         };
         
-        // Generate infographic using DALL-E
-        const infographicDallEUrl = await generateImageWithDallE(
+        // Generate infographic using Canvas
+        const infographicBuffer = await generateInfographicImage(
             roadmapStructure.careerName,
-            roadmapStructure.steps,
-            'infographic'
+            roadmapStructure.steps
         );
         
-        // Download and upload the infographic
+        // Upload the infographic
         const infographicUrl = await uploadImageToStorage(
-            infographicDallEUrl,
+            infographicBuffer,
             userId,
             'infographic'
         );
 
-        console.log('Creating milestone roadmap with DALL-E...');
+        console.log('Creating milestone roadmap with Canvas...');
         
-        // Generate milestone roadmap using DALL-E
-        const milestoneDallEUrl = await generateImageWithDallE(
+        // Generate milestone roadmap using Canvas
+        const milestoneBuffer = await generateMilestoneRoadmapImage(
             roadmapStructure.careerName,
-            roadmapStructure.steps,
-            'milestone'
+            roadmapStructure.steps
         );
         
-        // Download and upload the milestone roadmap
+        // Upload the milestone roadmap
         const milestoneRoadmapUrl = await uploadImageToStorage(
-            milestoneDallEUrl,
+            milestoneBuffer,
             userId,
             'milestone'
         );
@@ -207,65 +206,183 @@ Return ONLY a valid JSON object with this exact structure:
     }
 }
 
-async function generateImageWithDallE(
+async function generateInfographicImage(
     careerName: string,
-    steps: Array<{ number: number; title: string }>,
-    type: 'infographic' | 'milestone'
-): Promise<string> {
-    // Create prompt based on type
-    let prompt: string;
-    
-    if (type === 'infographic') {
-        const stepsList = steps.map(step => `Step ${step.number}: ${step.title}`).join(', ');
-        prompt = `Create a professional career roadmap infographic for "${careerName}". 
-        
-The image should show:
-- A horizontal timeline from left to right
-- ${steps.length} numbered steps/circles connected by a line
-- Each step labeled: ${stepsList}
-- Clean, modern design with blue and white color scheme
-- Professional typography
-- Title at the top: "${careerName} Career Roadmap"
-- Infographic style, suitable for sharing on social media
-- No text that's too small to read
-- 16:9 aspect ratio, high quality`;
-    } else {
-        const stepsList = steps.map(step => `Step ${step.number}: ${step.title}`).join(', ');
-        prompt = `Create a professional milestone roadmap image for "${careerName}". 
-        
-The image should show:
-- A diagonal path from bottom-left to top-right
-- ${steps.length} milestone markers along the path
-- Each milestone labeled: ${stepsList}
-- A finish line at the top-right with "${careerName}" text
-- Clean, modern design with blue and white color scheme
-- Professional typography
-- Title at the top: "${careerName}"
-- Milestone/achievement style, suitable for sharing
-- No text that's too small to read
-- 16:9 aspect ratio, high quality`;
-    }
+    steps: Array<{ number: number; title: string }>
+): Promise<Buffer> {
+    const width = 1792;
+    const height = 1024;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
 
-    try {
-        // Generate image using DALL-E 3
-        const response = await openai.images.generate({
-            model: 'dall-e-3',
-            prompt: prompt,
-            n: 1,
-            size: '1792x1024',
-            quality: 'standard',
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(1, '#f0f9ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Title
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'bold 72px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const titleText = `${careerName} Career Roadmap`;
+    ctx.fillText(titleText, width / 2, 60);
+
+    // Timeline line
+    const timelineY = height / 2 + 100;
+    const startX = 150;
+    const endX = width - 150;
+    const lineWidth = endX - startX;
+
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(startX, timelineY);
+    ctx.lineTo(endX, timelineY);
+    ctx.stroke();
+
+    // Steps
+    const stepSpacing = lineWidth / (steps.length + 1);
+    steps.forEach((step, index) => {
+        const stepX = startX + stepSpacing * (index + 1);
+
+        // Step circle
+        ctx.fillStyle = '#2563eb';
+        ctx.beginPath();
+        ctx.arc(stepX, timelineY, 50, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Step number
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 42px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(step.number.toString(), stepX, timelineY);
+
+        // Step title
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = 'bold 36px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        
+        // Wrap text if needed
+        const maxWidth = stepSpacing * 0.8;
+        const words = step.title.split(' ');
+        let line = '';
+        let y = timelineY + 80;
+        
+        words.forEach((word) => {
+            const testLine = line + word + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && line !== '') {
+                ctx.fillText(line, stepX, y);
+                line = word + ' ';
+                y += 45;
+            } else {
+                line = testLine;
+            }
         });
+        ctx.fillText(line, stepX, y);
+    });
 
-        const imageUrl = response.data?.[0]?.url;
-        if (!imageUrl) {
-            throw new Error('Failed to generate image with DALL-E');
-        }
+    return canvas.toBuffer('image/png');
+}
 
-        return imageUrl;
-    } catch (error) {
-        console.error('DALL-E generation error:', error);
-        throw error;
-    }
+async function generateMilestoneRoadmapImage(
+    careerName: string,
+    steps: Array<{ number: number; title: string }>
+): Promise<Buffer> {
+    const width = 1792;
+    const height = 1024;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(1, '#f0f9ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Title
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'bold 72px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(careerName, width / 2, 40);
+
+    // Finish line label (top right)
+    ctx.font = 'bold 56px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(careerName, width - 50, 40);
+
+    // Diagonal path
+    const startX = width * 0.12;
+    const endX = width * 0.88;
+    const startY = height * 0.75;
+    const endY = height * 0.25;
+    
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // Steps along diagonal path
+    steps.forEach((step, index) => {
+        const progress = index / (steps.length - 1);
+        const stepX = startX + (endX - startX) * progress;
+        const stepY = startY - (startY - endY) * progress;
+
+        // Step block
+        ctx.fillStyle = '#dbeafe';
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2;
+        ctx.fillRect(stepX - 60, stepY - 30, 120, 60);
+        ctx.strokeRect(stepX - 60, stepY - 30, 120, 60);
+
+        // Step number circle
+        ctx.fillStyle = '#2563eb';
+        ctx.beginPath();
+        ctx.arc(stepX, stepY - 30, 30, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(step.number.toString(), stepX, stepY - 30);
+
+        // Step title (to the right of the block)
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        
+        // Wrap text if needed
+        const maxWidth = 350;
+        const words = step.title.split(' ');
+        let line = '';
+        let y = stepY;
+        
+        words.forEach((word) => {
+            const testLine = line + word + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && line !== '') {
+                ctx.fillText(line, stepX + 80, y);
+                line = word + ' ';
+                y += 40;
+            } else {
+                line = testLine;
+            }
+        });
+        ctx.fillText(line, stepX + 80, y);
+    });
+
+    return canvas.toBuffer('image/png');
 }
 
 
