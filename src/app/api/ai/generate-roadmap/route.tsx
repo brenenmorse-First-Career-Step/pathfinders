@@ -265,8 +265,18 @@ async function createInfographicImage(
                         }}
                     />
 
-                    {/* Steps */}
-                    {steps.map((step) => {
+                    {/* Steps Container */}
+                    <div
+                        style={{
+                            position: 'relative',
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'space-around',
+                            alignItems: 'center',
+                            zIndex: 1,
+                        }}
+                    >
+                        {steps.map((step) => {
                         const titleLines = wrapText(step.title, stepSpacing * 0.9, 36);
 
                         return (
@@ -323,6 +333,7 @@ async function createInfographicImage(
                             </div>
                         );
                     })}
+                    </div>
                 </div>
             </div>
         ),
@@ -398,7 +409,16 @@ async function createMilestoneRoadmapImage(
                         padding: '100px 150px',
                     }}
                 >
-                    {steps.map((step, index) => {
+                    {/* Steps Wrapper */}
+                    <div
+                        style={{
+                            position: 'relative',
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                        }}
+                    >
+                        {steps.map((step, index) => {
                         const progress = index / (steps.length - 1);
                         const leftPercent = 12 + progress * 76; // 12% to 88%
                         const topPercent = 75 - progress * 50; // 75% to 25%
@@ -475,6 +495,7 @@ async function createMilestoneRoadmapImage(
                             </div>
                         );
                     })}
+                    </div>
 
                     {/* Connecting Path (simplified as diagonal line) */}
                     <div
