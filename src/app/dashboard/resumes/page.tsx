@@ -117,6 +117,16 @@ export default function ResumesPage() {
         try {
             setLoading(true);
             const supabase = createBrowserClient();
+            
+            console.log('Fetching resumes for user:', user.id);
+            
+            // First, verify user session
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || !session) {
+                console.error('Session error:', sessionError);
+                throw new Error('Not authenticated. Please log in again.');
+            }
+            
             // Fetch all resumes for the user
             const { data, error } = await supabase
                 .from('resumes')
@@ -126,26 +136,36 @@ export default function ResumesPage() {
 
             if (error) {
                 console.error('Error fetching resumes:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    hint: error.hint,
+                });
                 throw error;
             }
             
             // Show all resumes - paid, locked, and draft
             // Log for debugging
             console.log('Fetched resumes:', data?.length || 0, 'resumes found');
-            console.log('Resume data:', data);
-            console.log('Resume titles:', data?.map((r: Resume) => r.title));
+            console.log('Resume data:', JSON.stringify(data, null, 2));
             
             if (data && data.length > 0) {
                 console.log('First resume:', data[0]);
                 console.log('First resume title:', data[0].title);
                 console.log('First resume status:', data[0].status);
+                console.log('First resume user_id:', data[0].user_id);
+            } else {
+                console.warn('No resumes found for user:', user.id);
             }
             
             setResumes(data || []);
         } catch (error) {
             console.error('Error fetching resumes:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load resumes';
+            console.error('Full error:', error);
             // Show error to user
-            alert('Failed to load resumes. Please refresh the page.');
+            alert(`Failed to load resumes: ${errorMessage}. Please refresh the page.`);
         } finally {
             setLoading(false);
         }
@@ -164,6 +184,14 @@ export default function ResumesPage() {
         try {
             const supabase = createBrowserClient();
             
+            console.log('Attempting to delete resume:', resumeId, 'for user:', user.id);
+            
+            // Verify session first
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || !session) {
+                throw new Error('Not authenticated. Please log in again.');
+            }
+            
             // First verify the resume belongs to the user
             const { data: resume, error: fetchError } = await supabase
                 .from('resumes')
@@ -171,25 +199,45 @@ export default function ResumesPage() {
                 .eq('id', resumeId)
                 .single();
 
-            if (fetchError || !resume) {
+            if (fetchError) {
+                console.error('Error fetching resume for deletion:', fetchError);
+                throw new Error(`Resume not found: ${fetchError.message}`);
+            }
+
+            if (!resume) {
                 throw new Error('Resume not found');
             }
 
             if (resume.user_id !== user.id) {
+                console.error('User mismatch:', {
+                    resumeUserId: resume.user_id,
+                    currentUserId: user.id,
+                });
                 throw new Error('You do not have permission to delete this resume');
             }
 
+            console.log('Resume verified, proceeding with deletion...');
+
             // Delete the resume
-            const { error } = await supabase
+            const { error, data: deleteData } = await supabase
                 .from('resumes')
                 .delete()
                 .eq('id', resumeId)
-                .eq('user_id', user.id); // Double-check user ownership
+                .eq('user_id', user.id) // Double-check user ownership
+                .select();
 
             if (error) {
                 console.error('Delete error:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    hint: error.hint,
+                });
                 throw error;
             }
+
+            console.log('Resume deleted successfully:', deleteData);
 
             // Remove from local state immediately for better UX
             setResumes(prev => prev.filter(r => r.id !== resumeId));

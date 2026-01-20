@@ -160,6 +160,12 @@ export async function POST(request: NextRequest) {
 
                     // CRITICAL FIX: Update ALL locked resumes to paid when payment succeeds
                     // Payment is a user-level entitlement (lifetime access), not per-resume
+                    paymentLogger.info('Updating all locked resumes to paid status', {
+                        userId,
+                        sessionId: session.id,
+                        resumeId,
+                    });
+                    
                     const updateData: { status: string } = { status: 'paid' };
                     const { data: updatedResumes, error: updateAllResumesError } = await supabase
                         .from('resumes')
@@ -174,6 +180,12 @@ export async function POST(request: NextRequest) {
                             error: updateAllResumesError,
                             userId,
                             sessionId: session.id,
+                            errorDetails: {
+                                message: updateAllResumesError.message,
+                                code: updateAllResumesError.code,
+                                details: updateAllResumesError.details,
+                                hint: updateAllResumesError.hint,
+                            },
                         });
                     } else {
                         paymentLogger.info('Updated all locked resumes to paid status', {
@@ -181,6 +193,7 @@ export async function POST(request: NextRequest) {
                             sessionId: session.id,
                             updatedCount: updatedResumes?.length || 0,
                             resumeIds: updatedResumes?.map((r: ResumeRecord) => r.id) || [],
+                            updatedResumes: updatedResumes,
                         });
                     }
 

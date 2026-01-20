@@ -76,6 +76,13 @@ export async function POST() {
             const shareableLink = crypto.randomUUID();
             // Use profile full_name first, then extract name from email, then fallback
             const userName = profile.full_name || (user.email ? user.email.split('@')[0] : 'My');
+            
+            console.log('Creating new locked resume:', {
+                userId: user.id,
+                userName,
+                shareableLink,
+            });
+            
             const { data: newResume, error: resumeError } = await supabase
                 .from('resumes')
                 .insert({
@@ -83,19 +90,29 @@ export async function POST() {
                     title: `${userName} Resume`,
                     status: 'locked',
                     shareable_link: shareableLink,
+                    version: 1,
                 })
-                .select('id')
+                .select('id, title, status, shareable_link')
                 .single();
 
             if (resumeError) {
                 console.error('Resume creation error:', resumeError);
+                console.error('Error details:', {
+                    message: resumeError.message,
+                    code: resumeError.code,
+                    details: resumeError.details,
+                    hint: resumeError.hint,
+                });
                 return NextResponse.json(
-                    { error: 'Failed to create resume record' },
+                    { error: `Failed to create resume record: ${resumeError.message}` },
                     { status: 500 }
                 );
             }
+            
+            console.log('Resume created successfully:', newResume);
             resumeId = newResume.id;
         } else {
+            console.log('Using existing locked resume:', existingResume.id);
             resumeId = existingResume.id;
         }
 
