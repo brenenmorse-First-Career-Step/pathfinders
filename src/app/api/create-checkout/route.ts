@@ -77,10 +77,23 @@ export async function POST() {
             // Use profile full_name first, then extract name from email, then fallback
             const userName = profile.full_name || (user.email ? user.email.split('@')[0] : 'My');
             
+            // Calculate next version number based on all existing resumes (including deleted ones)
+            const { data: existingResumes } = await supabase
+                .from('resumes')
+                .select('version')
+                .eq('user_id', user.id)
+                .order('version', { ascending: false })
+                .limit(1);
+            
+            const nextVersion = existingResumes && existingResumes.length > 0
+                ? ((existingResumes[0] as { version?: number })?.version || 0) + 1
+                : 1;
+            
             console.log('Creating new locked resume:', {
                 userId: user.id,
                 userName,
                 shareableLink,
+                version: nextVersion,
             });
             
             const { data: newResume, error: resumeError } = await supabase
@@ -90,9 +103,9 @@ export async function POST() {
                     title: `${userName} Resume`,
                     status: 'locked',
                     shareable_link: shareableLink,
-                    version: 1,
+                    version: nextVersion,
                 })
-                .select('id, title, status, shareable_link')
+                .select('id, title, status, shareable_link, version')
                 .single();
 
             if (resumeError) {

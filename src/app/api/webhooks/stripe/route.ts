@@ -200,35 +200,78 @@ export async function POST(request: NextRequest) {
                     let resume;
 
                     if (resumeId && resumeId !== 'new-resume') {
-                        // Update the specific resume that was paid for
-                        // Also update title if it was using email (fix existing resumes)
-                        const resumeUpdateData: { status: string; stripe_session_id: string; title?: string } = {
-                            status: 'paid',
-                            stripe_session_id: session.id,
-                        };
-                        if (userName !== 'My') {
-                            resumeUpdateData.title = `${userName} Resume`;
-                        }
-                        const { data: updatedResume, error: updateError } = await supabase
+                        // First, try to find the resume by ID
+                        const { data: existingResume, error: fetchError } = await supabase
                             .from('resumes')
-                            // @ts-expect-error - Supabase type inference issue with admin client
-                            .update(resumeUpdateData)
+                            .select('id, status, version')
                             .eq('id', resumeId)
                             .eq('user_id', userId)
-                            .select()
-                            .single();
+                            .single() as { data: { id: string; status: string; version?: number } | null; error: unknown };
 
-                        if (updateError) {
-                            paymentLogger.error('Failed to update resume record', {
-                                error: updateError,
+                        if (fetchError || !existingResume) {
+                            paymentLogger.error('Resume not found for update', {
+                                error: fetchError,
                                 userId,
                                 resumeId,
                                 sessionId: session.id,
                             });
-                            break;
+                            // Fall through to create new resume as fallback
+                        } else {
+                            // Update the specific resume that was paid for
+                            // Also update title if it was using email (fix existing resumes)
+                            const resumeUpdateData: { status: string; stripe_session_id: string; title?: string } = {
+                                status: 'paid',
+                                stripe_session_id: session.id,
+                            };
+                            if (userName !== 'My') {
+                                resumeUpdateData.title = `${userName} Resume`;
+                            }
+                            
+                            paymentLogger.info('Updating existing resume to paid status', {
+                                userId,
+                                resumeId,
+                                currentStatus: existingResume.status,
+                                sessionId: session.id,
+                            });
+                            
+                            const { data: updatedResume, error: updateError } = await supabase
+                                .from('resumes')
+                                // @ts-expect-error - Supabase type inference issue with admin client
+                                .update(resumeUpdateData)
+                                .eq('id', resumeId)
+                                .eq('user_id', userId)
+                                .select()
+                                .single() as { data: ResumeRecord | null; error: unknown };
+
+                            if (updateError || !updatedResume) {
+                                paymentLogger.error('Failed to update resume record', {
+                                    error: updateError,
+                                    userId,
+                                    resumeId,
+                                    sessionId: session.id,
+                                    errorDetails: updateError ? {
+                                        message: (updateError as { message?: string })?.message,
+                                        code: (updateError as { code?: string })?.code,
+                                        details: (updateError as { details?: string })?.details,
+                                        hint: (updateError as { hint?: string })?.hint,
+                                    } : undefined,
+                                });
+                                break;
+                            }
+                            
+                            paymentLogger.info('Resume updated successfully', {
+                                userId,
+                                resumeId: updatedResume.id,
+                                newStatus: updatedResume.status,
+                                sessionId: session.id,
+                            });
+                            
+                            resume = updatedResume;
                         }
-                        resume = updatedResume as ResumeRecord;
-                    } else {
+                    }
+                    
+                    // If resume wasn't updated above, create new resume (fallback)
+                    if (!resume) {
                         // Create new resume record (fallback if resumeId not provided)
                         const shareableLink = crypto.randomUUID();
 
