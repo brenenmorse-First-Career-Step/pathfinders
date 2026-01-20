@@ -166,7 +166,38 @@ export async function POST(request: NextRequest) {
                         resumeId,
                     });
                     
-                    const updateData: { status: string } = { status: 'paid' };
+                    // First, update user_payments table to record payment
+                    const { error: paymentError } = await supabase
+                        .from('user_payments')
+                        .upsert({
+                            user_id: userId,
+                            has_paid: true,
+                            payment_amount: (session.amount_total || 0) / 100, // Convert cents to dollars
+                            stripe_payment_intent_id: session.payment_intent as string,
+                            paid_at: new Date().toISOString(),
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        } as any, {
+                            onConflict: 'user_id',
+                        });
+
+                    if (paymentError) {
+                        paymentLogger.error('Failed to update payment record', {
+                            error: paymentError,
+                            userId,
+                            sessionId: session.id,
+                        });
+                    } else {
+                        paymentLogger.info('Payment record updated successfully', {
+                            userId,
+                            sessionId: session.id,
+                        });
+                    }
+                    
+                    // Then, update ALL locked resumes to paid status
+                    const updateData: { status: string; stripe_session_id: string } = { 
+                        status: 'paid',
+                        stripe_session_id: session.id,
+                    };
                     const { data: updatedResumes, error: updateAllResumesError } = await supabase
                         .from('resumes')
                         // @ts-expect-error - Supabase type inference issue with admin client
