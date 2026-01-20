@@ -128,34 +128,32 @@ Return ONLY a valid JSON object with this exact structure:
             }))
         };
         
-        // Create simplified step labels (only step numbers and short titles)
-        const stepNumbers = roadmapStructure.steps.map(step => step.number).join(', ');
-        const stepTitlesShort = roadmapStructure.steps.map(step => step.title).join(' | ');
+        // Create simple step list for prompt
+        const stepsList = roadmapStructure.steps.map(step => `${step.number}. ${step.title}`).join(' | ');
         
-        const infographicPrompt = `Create a professional wide-format career roadmap infographic. 
+        const infographicPrompt = `Create a simple, clean career roadmap infographic with perfectly readable text.
 
-REQUIRED TEXT (large, bold, perfectly readable):
-- Main heading at top: "${roadmapStructure.careerName} Career Roadmap"
-- Step numbers: ${stepNumbers}
-- Step titles only: ${stepTitlesShort}
+CRITICAL TEXT REQUIREMENTS (must be large, clear, readable):
+Title at top: "${roadmapStructure.careerName} Career Roadmap"
+Steps: ${stepsList}
 
-Visual Design:
-- Wide horizontal timeline (landscape format) flowing left to right
-- ${roadmapStructure.totalSteps} milestone markers evenly spaced along timeline
-- Connecting path linking all milestones
-- Professional color scheme: blues, teals, purples
-- Clean minimalist design with white background
-- Large geometric shapes for milestones
-- Ample spacing between elements
+Design Instructions:
+- Simple horizontal layout with white background
+- ${roadmapStructure.totalSteps} numbered circles or boxes arranged left to right
+- Minimal graphics - just simple shapes, no complex visuals
+- Text is the main focus, not graphics
+- Each step has: large number + short title text
+- Use simple connecting line between steps
+- Professional colors: light blue or teal accents only
+- Maximum simplicity - prioritize text readability over visual complexity
 
-Text Requirements:
-- Main heading: Very large bold text at top center
-- Step numbers: Large bold numbers (1, 2, 3, etc.) on each milestone
-- Step titles: Medium-large bold text below or next to each step number
-- Maximum 3-4 words per step title visible
-- High contrast: dark text on light backgrounds
-- Sans-serif bold fonts only
-- Minimal text - only headings and step labels, no descriptions`;
+Text Format:
+- Title: Very large bold black text at top
+- Each step: Large number (1, 2, 3...) in bold + step title in bold text below it
+- All text must be black or dark blue on white background
+- Large font sizes - text should dominate the image
+- Simple sans-serif fonts
+- High contrast for maximum readability`;
 
         const infographicResponse = await openai.images.generate({
             model: 'dall-e-3',
@@ -172,36 +170,34 @@ Text Requirements:
 
         console.log('Generating milestone roadmap...');
         
-        // Create simplified step labels for milestone roadmap
-        const milestoneStepNumbers = roadmapStructure.steps.map(step => step.number).join(', ');
-        const milestoneStepTitles = roadmapStructure.steps.map(step => step.title).join(' | ');
+        // Create simple step list for milestone roadmap
+        const milestoneStepsList = roadmapStructure.steps.map(step => `${step.number}. ${step.title}`).join(' | ');
         
-        const milestonePrompt = `Create a clean wide-format career milestone roadmap graphic.
+        const milestonePrompt = `Create a simple, clean career milestone roadmap with perfectly readable text.
 
-REQUIRED TEXT (large, bold, perfectly readable):
-- Main heading at top: "${roadmapStructure.careerName}"
-- Finish line: "${roadmapStructure.careerName}"
-- Step numbers: ${milestoneStepNumbers}
-- Step titles: ${milestoneStepTitles}
+CRITICAL TEXT REQUIREMENTS (must be large, clear, readable):
+Title at top: "${roadmapStructure.careerName}"
+Finish line at top: "${roadmapStructure.careerName}"
+Steps: ${milestoneStepsList}
 
-Visual Design:
-- Wide landscape format ascending staircase with ${roadmapStructure.totalSteps} steps
-- Steps progress from bottom-left to top-right
-- Each step progressively larger/higher
-- Professional gradient: teal to blue to purple
-- Clean minimalist design with white background
-- Simple geometric block shapes
-- Connecting path between steps
-- Finish line at top
+Design Instructions:
+- Simple ascending staircase layout with white background
+- ${roadmapStructure.totalSteps} rectangular steps from bottom-left to top-right
+- Minimal graphics - just simple rectangular blocks, no complex visuals
+- Text is the main focus, not graphics
+- Each step has: large number + short title text
+- Use simple connecting line between steps
+- Professional colors: light blue or teal accents only
+- Maximum simplicity - prioritize text readability over visual complexity
 
-Text Requirements:
-- Main heading: Very large bold at top
-- Finish line: Large bold text at destination
-- Step numbers: Large bold numbers (1, 2, 3, etc.) on each step
-- Step titles: Medium-large bold text, maximum 3-4 words visible
-- High contrast: dark text on light backgrounds
-- Sans-serif bold fonts only
-- Minimal text - only headings and step labels`;
+Text Format:
+- Title: Very large bold black text at top
+- Finish line: Large bold text at top destination
+- Each step: Large number (1, 2, 3...) in bold + step title in bold text on or next to step
+- All text must be black or dark blue on white/light background
+- Large font sizes - text should dominate the image
+- Simple sans-serif fonts
+- High contrast for maximum readability`;
 
         const milestoneResponse = await openai.images.generate({
             model: 'dall-e-3',
