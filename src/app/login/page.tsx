@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { logger } from '@/lib/logger';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -69,9 +70,12 @@ export default function LoginPage() {
         email: formData.email,
       });
 
+      // Get redirect destination from query params or default to dashboard
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      
       // Small delay to ensure session is established before redirect
       setTimeout(() => {
-        router.replace('/dashboard');
+        router.replace(redirectTo);
       }, 100);
     } catch (error) {
       logger.error('Login Form', error as Error, { email: formData.email });
@@ -186,5 +190,17 @@ export default function LoginPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-career-blue"></div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

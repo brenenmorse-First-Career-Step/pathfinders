@@ -42,22 +42,22 @@ export async function middleware(request: NextRequest) {
             }
         );
 
-        // Get the current user session
+        // Get the current user - more reliable than getSession() in middleware
         const {
-            data: { session },
-            error: sessionError,
-        } = await supabase.auth.getSession();
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser();
 
-        if (sessionError) {
-            logger.error('Middleware', sessionError, { pathname });
+        if (userError) {
+            logger.error('Middleware', userError, { pathname });
         }
 
-        const isAuthenticated = !!session?.user;
+        const isAuthenticated = !!user;
 
         logger.debug('Middleware', 'Route access check', {
             pathname,
             isAuthenticated,
-            userId: session?.user?.id,
+            userId: user?.id,
         });
 
         // Check if the route is protected
@@ -85,7 +85,7 @@ export async function middleware(request: NextRequest) {
             logger.info('Middleware', 'Authenticated user accessing auth route', {
                 pathname,
                 redirectTo: '/dashboard',
-                userId: session.user.id,
+                userId: user.id,
             });
 
             return NextResponse.redirect(new URL('/dashboard', request.url));
