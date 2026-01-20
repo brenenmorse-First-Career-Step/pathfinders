@@ -32,7 +32,41 @@ export default function ResumesPage() {
 
     useEffect(() => {
         fetchResumes();
+        
+        // Check if coming from payment success page
+        const paymentCompleted = sessionStorage.getItem('payment_completed');
+        if (paymentCompleted === 'true') {
+            // Clear the flag
+            sessionStorage.removeItem('payment_completed');
+            // Refresh resumes after a short delay to allow webhook to process
+            setTimeout(() => {
+                fetchResumes();
+            }, 3000);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
+    // Refresh resumes when page becomes visible (e.g., after returning from payment)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && user) {
+                fetchResumes();
+            }
+        };
+
+        const handleFocus = () => {
+            if (user) {
+                fetchResumes();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
     }, [user]);
 
     const fetchResumes = async () => {

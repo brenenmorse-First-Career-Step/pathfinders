@@ -13,6 +13,8 @@ function SuccessContent() {
         // Give webhook a moment to process
         const timer = setTimeout(() => {
             setIsVerifying(false);
+            // Set flag to trigger refresh on dashboard
+            sessionStorage.setItem('payment_completed', 'true');
         }, 2000);
 
         return () => clearTimeout(timer);
