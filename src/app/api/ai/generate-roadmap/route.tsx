@@ -212,7 +212,12 @@ async function generateInfographicImage(
 ): Promise<Buffer> {
     const width = 1792;
     const height = 1024;
-    const stepSpacing = (width - 300) / (steps.length + 1);
+    
+    // Calculate even spacing - leave margins on both sides
+    const margin = 200;
+    const availableWidth = width - (margin * 2);
+    const stepSpacing = availableWidth / steps.length;
+    const timelineY = height * 0.6; // Position timeline at 60% from top
 
     // Brand colors
     const colors = {
@@ -232,37 +237,40 @@ async function generateInfographicImage(
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    background: `linear-gradient(135deg, #ffffff 0%, ${colors.softSky} 50%, #E8F5E9 100%)`,
-                    padding: '60px 80px',
+                    background: `linear-gradient(180deg, #ffffff 0%, ${colors.softSky} 100%)`,
+                    padding: '80px 100px',
                 }}
             >
-                {/* Title with gradient */}
+                {/* Title Section */}
                 <div
                     style={{
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        marginBottom: '40px',
+                        marginBottom: '80px',
                     }}
                 >
+                    {/* Main Title */}
                     <div
                         style={{
-                            fontSize: 80,
+                            fontSize: 72,
                             fontWeight: 'bold',
                             color: colors.careerBlue,
                             textAlign: 'center',
-                            marginBottom: '10px',
+                            marginBottom: '16px',
                             display: 'flex',
                         }}
                     >
                         {careerName}
                     </div>
+                    {/* Subtitle */}
                     <div
                         style={{
-                            fontSize: 48,
+                            fontSize: 40,
                             fontWeight: '600',
                             color: colors.charcoal,
                             textAlign: 'center',
+                            display: 'flex',
                         }}
                     >
                         Career Roadmap
@@ -277,71 +285,81 @@ async function generateInfographicImage(
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        marginTop: '60px',
+                        flex: 1,
                     }}
                 >
-                    {/* Connecting Line with gradient */}
+                    {/* Horizontal Timeline Line */}
                     <div
                         style={{
                             position: 'absolute',
-                            top: '50%',
-                            left: '150px',
-                            right: '150px',
-                            height: '8px',
+                            top: '0px',
+                            left: `${margin}px`,
+                            right: `${margin}px`,
+                            height: '6px',
                             background: `linear-gradient(90deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
-                            borderRadius: '4px',
+                            borderRadius: '3px',
                             zIndex: 0,
                         }}
                     />
 
-                    {/* Steps Container */}
+                    {/* Steps - Evenly Spaced */}
                     <div
                         style={{
                             position: 'relative',
                             width: '100%',
                             display: 'flex',
-                            justifyContent: 'space-around',
-                            alignItems: 'center',
+                            justifyContent: 'flex-start',
+                            alignItems: 'flex-start',
+                            paddingLeft: `${margin}px`,
                             zIndex: 1,
                         }}
                     >
                         {steps.map((step, index) => {
-                            // Alternate colors for visual interest
+                            // Alternate colors: blue, green, orange
                             const stepColor = index % 3 === 0 
                                 ? colors.careerBlue 
                                 : index % 3 === 1 
                                 ? colors.stepGreen 
                                 : colors.optimismOrange;
                             
-                            const titleLines = wrapText(step.title, stepSpacing * 0.85, 32);
+                            // Calculate step X position - center of each step's space
+                            const stepX = (index * stepSpacing) + (stepSpacing / 2);
+                            
+                            // Wrap text to fit within step column (leave padding)
+                            const textMaxWidth = stepSpacing * 0.75;
+                            const titleLines = wrapText(step.title, textMaxWidth, 28);
 
                             return (
                                 <div
                                     key={step.number}
                                     style={{
+                                        position: 'absolute',
+                                        left: `${stepX}px`,
+                                        top: '0px',
+                                        transform: 'translateX(-50%)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
-                                        zIndex: 1,
+                                        width: `${textMaxWidth}px`,
                                     }}
                                 >
-                                    {/* Step Circle with shadow effect */}
+                                    {/* Step Number Circle */}
                                     <div
                                         style={{
-                                            width: '120px',
-                                            height: '120px',
+                                            width: '100px',
+                                            height: '100px',
                                             borderRadius: '50%',
-                                            background: `linear-gradient(135deg, ${stepColor} 0%, ${stepColor}dd 100%)`,
+                                            backgroundColor: stepColor,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            marginBottom: '30px',
-                                            boxShadow: `0 8px 24px ${stepColor}40`,
+                                            marginBottom: '24px',
+                                            boxShadow: `0 4px 12px ${stepColor}50`,
                                         }}
                                     >
                                         <span
                                             style={{
-                                                fontSize: 56,
+                                                fontSize: 48,
                                                 fontWeight: 'bold',
                                                 color: '#ffffff',
                                                 display: 'flex',
@@ -351,25 +369,27 @@ async function generateInfographicImage(
                                         </span>
                                     </div>
 
-                                    {/* Step Title */}
+                                    {/* Step Title - Centered and Wrapped */}
                                     <div
                                         style={{
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
-                                            maxWidth: `${stepSpacing * 0.85}px`,
+                                            width: '100%',
                                         }}
                                     >
                                         {titleLines.map((line, lineIndex) => (
                                             <div
                                                 key={lineIndex}
                                                 style={{
-                                                    fontSize: 32,
-                                                    fontWeight: 'bold',
+                                                    fontSize: 28,
+                                                    fontWeight: 'normal',
                                                     color: colors.charcoal,
                                                     textAlign: 'center',
-                                                    marginBottom: lineIndex < titleLines.length - 1 ? '8px' : '0',
+                                                    marginBottom: lineIndex < titleLines.length - 1 ? '6px' : '0',
                                                     display: 'flex',
+                                                    width: '100%',
+                                                    justifyContent: 'center',
                                                 }}
                                             >
                                                 {line}
@@ -506,8 +526,14 @@ async function generateMilestoneRoadmapImage(
                     {/* Steps */}
                     {steps.map((step, index) => {
                         const progress = index / (steps.length - 1);
-                        const leftPercent = 12 + progress * 76;
-                        const topPercent = 75 - progress * 50;
+                        // Diagonal path coordinates
+                        const pathStartX = 12; // 12% from left
+                        const pathEndX = 88; // 88% from left
+                        const pathStartY = 75; // 75% from top
+                        const pathEndY = 25; // 25% from top
+                        
+                        const stepX = pathStartX + (pathEndX - pathStartX) * progress;
+                        const stepY = pathStartY - (pathStartY - pathEndY) * progress;
                         
                         // Alternate colors for visual interest
                         const stepColor = index % 3 === 0 
@@ -516,15 +542,22 @@ async function generateMilestoneRoadmapImage(
                             ? colors.stepGreen 
                             : colors.optimismOrange;
                         
-                        const titleLines = wrapText(step.title, 380, 28);
+                        // Calculate text position to avoid overlap
+                        // Alternate text position: left side for even steps, right side for odd steps
+                        const textSide = index % 2 === 0 ? 'left' : 'right';
+                        const textOffsetX = textSide === 'left' ? -200 : 200;
+                        const textAlign = textSide === 'left' ? 'right' : 'left';
+                        
+                        // Wrap text properly
+                        const titleLines = wrapText(step.title, 320, 26);
 
                         return (
                             <div
                                 key={step.number}
                                 style={{
                                     position: 'absolute',
-                                    left: `${leftPercent}%`,
-                                    top: `${topPercent}%`,
+                                    left: `${stepX}%`,
+                                    top: `${stepY}%`,
                                     transform: 'translate(-50%, -50%)',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -532,17 +565,17 @@ async function generateMilestoneRoadmapImage(
                                     zIndex: 1,
                                 }}
                             >
-                                {/* Step Block with gradient */}
+                                {/* Step Block */}
                                 <div
                                     style={{
-                                        width: '140px',
-                                        height: '70px',
-                                        background: `linear-gradient(135deg, ${stepColor}15 0%, ${stepColor}25 100%)`,
+                                        width: '130px',
+                                        height: '65px',
+                                        backgroundColor: `${stepColor}20`,
                                         border: `3px solid ${stepColor}`,
-                                        borderRadius: '12px',
-                                        marginBottom: '35px',
+                                        borderRadius: '10px',
+                                        marginBottom: '40px',
                                         display: 'flex',
-                                        boxShadow: `0 6px 20px ${stepColor}30`,
+                                        boxShadow: `0 4px 12px ${stepColor}30`,
                                     }}
                                 />
 
@@ -550,20 +583,20 @@ async function generateMilestoneRoadmapImage(
                                 <div
                                     style={{
                                         position: 'absolute',
-                                        top: '-35px',
-                                        width: '70px',
-                                        height: '70px',
+                                        top: '-32px',
+                                        width: '64px',
+                                        height: '64px',
                                         borderRadius: '50%',
-                                        background: `linear-gradient(135deg, ${stepColor} 0%, ${stepColor}dd 100%)`,
+                                        backgroundColor: stepColor,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        boxShadow: `0 6px 20px ${stepColor}40`,
+                                        boxShadow: `0 4px 12px ${stepColor}40`,
                                     }}
                                 >
                                     <span
                                         style={{
-                                            fontSize: 40,
+                                            fontSize: 36,
                                             fontWeight: 'bold',
                                             color: '#ffffff',
                                             display: 'flex',
@@ -573,26 +606,34 @@ async function generateMilestoneRoadmapImage(
                                     </span>
                                 </div>
 
-                                {/* Step Title */}
+                                {/* Step Title - Positioned to avoid overlap */}
                                 <div
                                     style={{
+                                        position: 'absolute',
+                                        left: textSide === 'left' ? `${textOffsetX}px` : 'auto',
+                                        right: textSide === 'right' ? `${-textOffsetX}px` : 'auto',
+                                        top: '50%',
+                                        transform: textSide === 'left' 
+                                            ? 'translateX(-100%) translateY(-50%)' 
+                                            : 'translateX(0) translateY(-50%)',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        alignItems: 'flex-start',
-                                        marginLeft: '90px',
-                                        maxWidth: '380px',
+                                        alignItems: textSide === 'left' ? 'flex-end' : 'flex-start',
+                                        width: '320px',
                                     }}
                                 >
                                     {titleLines.map((line, lineIndex) => (
                                         <div
                                             key={lineIndex}
                                             style={{
-                                                fontSize: 28,
-                                                fontWeight: 'bold',
+                                                fontSize: 26,
+                                                fontWeight: 'normal',
                                                 color: colors.charcoal,
-                                                textAlign: 'left',
-                                                marginBottom: lineIndex < titleLines.length - 1 ? '6px' : '0',
+                                                textAlign: textAlign,
+                                                marginBottom: lineIndex < titleLines.length - 1 ? '5px' : '0',
                                                 display: 'flex',
+                                                width: '100%',
+                                                justifyContent: textSide === 'left' ? 'flex-end' : 'flex-start',
                                             }}
                                         >
                                             {line}
