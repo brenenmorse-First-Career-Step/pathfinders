@@ -231,26 +231,74 @@ function RoadmapDetailView({
                     <div className="grid md:grid-cols-2 gap-6 mb-8">
                         {infographic_url && (
                             <div className="bg-white rounded-2xl shadow-sm p-6">
-                                <h2 className="text-2xl font-bold text-charcoal mb-4">
-                                    Career Roadmap Infographic
-                                </h2>
-                                <img
-                                    src={infographic_url}
-                                    alt={`${roadmapData.careerName} Career Roadmap Infographic`}
-                                    className="w-full rounded-lg"
-                                />
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-charcoal">
+                                        Career Roadmap Infographic
+                                    </h2>
+                                    <button
+                                        onClick={() => {
+                                            const link = document.createElement('a');
+                                            link.href = infographic_url;
+                                            link.download = `${roadmapData.careerName}-Infographic.png`;
+                                            link.click();
+                                        }}
+                                        className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                    </button>
+                                </div>
+                                <div className="relative group">
+                                    <img
+                                        src={infographic_url}
+                                        alt={`${roadmapData.careerName} Career Roadmap Infographic`}
+                                        className="w-full rounded-lg cursor-pointer"
+                                        onClick={() => window.open(infographic_url, '_blank')}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-opacity flex items-center justify-center">
+                                        <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium bg-black bg-opacity-50 px-3 py-1 rounded">
+                                            Click to view full size
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         )}
                         {milestone_roadmap_url && (
                             <div className="bg-white rounded-2xl shadow-sm p-6">
-                                <h2 className="text-2xl font-bold text-charcoal mb-4">
-                                    Milestone Roadmap
-                                </h2>
-                                <img
-                                    src={milestone_roadmap_url}
-                                    alt={`${roadmapData.careerName} Milestone Roadmap`}
-                                    className="w-full rounded-lg"
-                                />
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-charcoal">
+                                        Milestone Roadmap
+                                    </h2>
+                                    <button
+                                        onClick={() => {
+                                            const link = document.createElement('a');
+                                            link.href = milestone_roadmap_url;
+                                            link.download = `${roadmapData.careerName}-Milestone-Roadmap.png`;
+                                            link.click();
+                                        }}
+                                        className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                    </button>
+                                </div>
+                                <div className="relative group">
+                                    <img
+                                        src={milestone_roadmap_url}
+                                        alt={`${roadmapData.careerName} Milestone Roadmap`}
+                                        className="w-full rounded-lg cursor-pointer"
+                                        onClick={() => window.open(milestone_roadmap_url, '_blank')}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-opacity flex items-center justify-center">
+                                        <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium bg-black bg-opacity-50 px-3 py-1 rounded">
+                                            Click to view full size
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>

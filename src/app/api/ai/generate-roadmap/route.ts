@@ -128,38 +128,39 @@ Return ONLY a valid JSON object with this exact structure:
             }))
         };
         
-        // Create step labels for the infographic
-        const stepLabels = roadmapStructure.steps.map(step => `Step ${step.number}: ${step.title}`).join(' | ');
+        // Create simplified step labels (only step numbers and short titles)
+        const stepNumbers = roadmapStructure.steps.map(step => step.number).join(', ');
+        const stepTitlesShort = roadmapStructure.steps.map(step => step.title).join(' | ');
         
-        const infographicPrompt = `Create a professional, clean career roadmap infographic titled "${roadmapStructure.careerName} Career Roadmap". 
+        const infographicPrompt = `Create a professional wide-format career roadmap infographic. 
 
-Design a horizontal timeline infographic flowing left to right with ${roadmapStructure.totalSteps} milestone markers. 
-
-REQUIRED TEXT (must be large, clear, and perfectly readable):
-- Main title at top: "${roadmapStructure.careerName} Career Roadmap" in large bold text
-- For each of the ${roadmapStructure.totalSteps} milestones, include clear readable labels: ${stepLabels}
+REQUIRED TEXT (large, bold, perfectly readable):
+- Main heading at top: "${roadmapStructure.careerName} Career Roadmap"
+- Step numbers: ${stepNumbers}
+- Step titles only: ${stepTitlesShort}
 
 Visual Design:
-- Horizontal timeline layout with connecting path
-- ${roadmapStructure.totalSteps} distinct milestone markers (circles or geometric shapes) evenly spaced
+- Wide horizontal timeline (landscape format) flowing left to right
+- ${roadmapStructure.totalSteps} milestone markers evenly spaced along timeline
+- Connecting path linking all milestones
 - Professional color scheme: blues, teals, purples
-- Clean, modern infographic style
-- Light background with ample white space
-- Each milestone clearly labeled with step number and title
-- Large, bold, readable fonts for all text
-- Professional PowerPoint presentation template aesthetic
+- Clean minimalist design with white background
+- Large geometric shapes for milestones
+- Ample spacing between elements
 
 Text Requirements:
-- All text must be large, clear, and perfectly readable
-- Use bold, sans-serif fonts
-- High contrast between text and background
-- Text labels positioned clearly next to or inside milestone markers
-- Main title prominently displayed at the top center`;
+- Main heading: Very large bold text at top center
+- Step numbers: Large bold numbers (1, 2, 3, etc.) on each milestone
+- Step titles: Medium-large bold text below or next to each step number
+- Maximum 3-4 words per step title visible
+- High contrast: dark text on light backgrounds
+- Sans-serif bold fonts only
+- Minimal text - only headings and step labels, no descriptions`;
 
         const infographicResponse = await openai.images.generate({
             model: 'dall-e-3',
             prompt: infographicPrompt,
-            size: '1024x1024',
+            size: '1792x1024',
             quality: 'standard',
             n: 1,
         });
@@ -171,39 +172,41 @@ Text Requirements:
 
         console.log('Generating milestone roadmap...');
         
-        // Create step labels for milestone roadmap
-        const milestoneStepLabels = roadmapStructure.steps.map(step => `Step ${step.number}: ${step.title}`).join(', ');
+        // Create simplified step labels for milestone roadmap
+        const milestoneStepNumbers = roadmapStructure.steps.map(step => step.number).join(', ');
+        const milestoneStepTitles = roadmapStructure.steps.map(step => step.title).join(' | ');
         
-        const milestonePrompt = `Create a clean, modern career milestone roadmap graphic titled "${roadmapStructure.careerName}".
+        const milestonePrompt = `Create a clean wide-format career milestone roadmap graphic.
 
-Design an ascending staircase or progression path with ${roadmapStructure.totalSteps} distinct steps from bottom-left to top-right.
-
-REQUIRED TEXT (must be large, clear, and perfectly readable):
-- Main title at top: "${roadmapStructure.careerName}" in large bold text
-- Finish line label at the top: "${roadmapStructure.careerName}" 
-- Each step clearly labeled: ${milestoneStepLabels}
+REQUIRED TEXT (large, bold, perfectly readable):
+- Main heading at top: "${roadmapStructure.careerName}"
+- Finish line: "${roadmapStructure.careerName}"
+- Step numbers: ${milestoneStepNumbers}
+- Step titles: ${milestoneStepTitles}
 
 Visual Design:
-- Ascending staircase or progression path with ${roadmapStructure.totalSteps} steps
-- Each step progressively larger/higher showing advancement
-- Professional color gradient: teal to blue to purple
-- Clean, minimalist design with ample white space
-- Simple geometric block shapes for steps
-- Connecting visual path between all steps
-- Finish line or destination point at the top
+- Wide landscape format ascending staircase with ${roadmapStructure.totalSteps} steps
+- Steps progress from bottom-left to top-right
+- Each step progressively larger/higher
+- Professional gradient: teal to blue to purple
+- Clean minimalist design with white background
+- Simple geometric block shapes
+- Connecting path between steps
+- Finish line at top
 
 Text Requirements:
-- All text must be large, clear, and perfectly readable
-- Use bold, sans-serif fonts with high contrast
-- Step labels clearly visible on or next to each step
-- Main title prominently displayed
-- Finish line clearly labeled with career name
-- Text positioned for maximum readability`;
+- Main heading: Very large bold at top
+- Finish line: Large bold text at destination
+- Step numbers: Large bold numbers (1, 2, 3, etc.) on each step
+- Step titles: Medium-large bold text, maximum 3-4 words visible
+- High contrast: dark text on light backgrounds
+- Sans-serif bold fonts only
+- Minimal text - only headings and step labels`;
 
         const milestoneResponse = await openai.images.generate({
             model: 'dall-e-3',
             prompt: milestonePrompt,
-            size: '1024x1024',
+            size: '1792x1024',
             quality: 'standard',
             n: 1,
         });
