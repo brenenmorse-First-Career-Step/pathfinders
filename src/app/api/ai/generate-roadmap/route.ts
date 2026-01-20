@@ -115,9 +115,30 @@ Return ONLY a valid JSON object with this exact structure:
         // Generate formatted content
         const formattedContent = formatRoadmapContent(roadmapData);
 
-        // Generate two images using DALL-E
+        // Generate two images using DALL-E with actual roadmap data
         console.log('Generating infographic...');
-        const infographicPrompt = `Create a professional left-to-right infographic titled "${roadmapData.careerName} Career Roadmap". The design should be clean, modern, and flow from left to right like a professional career timeline. Include visual elements like milestones, checkpoints, and a clear progression path. Use a professional color scheme. No text overlays, just the visual design.`;
+        
+        // Create step titles list for the prompt
+        const stepTitles = roadmapData.steps.map((step) => `Step ${step.step}: ${step.title}`).join(', ');
+        
+        const infographicPrompt = `Create a professional, clean career roadmap infographic template for "${roadmapData.careerName}". 
+
+Design Requirements:
+- Horizontal timeline layout flowing left to right
+- Show ${roadmapData.steps.length} distinct milestone markers or steps along a progression path
+- Clean, modern infographic style with professional color scheme (blues, teals, purples)
+- Visual progression from start (left) to finish (right) 
+- Each milestone should be represented by a clear visual marker (circle, icon, or step shape)
+- Use a connecting path or timeline bar linking all milestones
+- Simple, clean design without cluttered details
+- Professional PowerPoint/presentation template aesthetic
+- Light background with clear visual hierarchy
+- No random text, data, or confusing elements
+- Focus on clear visual structure representing career progression
+
+The visual should represent these ${roadmapData.steps.length} career steps: ${stepTitles}
+
+Style: Clean professional infographic template, similar to career roadmap presentation templates, with clear milestone progression.`;
         
         const infographicResponse = await openai.images.generate({
             model: 'dall-e-3',
@@ -133,7 +154,23 @@ Return ONLY a valid JSON object with this exact structure:
         }
 
         console.log('Generating milestone roadmap...');
-        const milestonePrompt = `Create a clean, modern milestone roadmap graphic for "${roadmapData.careerName}". The design should show a progression path with milestones and end with a finish line labeled "${roadmapData.careerName}". Use a modern, professional design with clear visual progression. No text overlays, just the visual design.`;
+        
+        const milestonePrompt = `Create a clean, modern career milestone roadmap graphic for "${roadmapData.careerName}".
+
+Design Requirements:
+- Show an ascending staircase or progression path with ${roadmapData.steps.length} distinct steps
+- Each step should be clearly defined and progressively larger/higher
+- Professional color gradient (teal to blue to purple) showing progression
+- Clean, minimalist design with ample white space
+- Visual path connecting all steps from bottom-left to top-right
+- Finish line or destination point at the top labeled with "${roadmapData.careerName}"
+- Simple geometric shapes, no complex details
+- Professional presentation template style
+- Clear visual hierarchy showing career advancement
+- No random text, icons, or confusing visual elements
+- Focus on clean structure representing ${roadmapData.steps.length} career milestones
+
+Style: Modern career path roadmap template, clean staircase or ascending path design, professional PowerPoint diagram style, simple and clear visual progression.`;
         
         const milestoneResponse = await openai.images.generate({
             model: 'dall-e-3',
