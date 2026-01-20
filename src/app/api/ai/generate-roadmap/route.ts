@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import { createCanvas } from 'canvas';
+import sharp from 'sharp';
 import type { RoadmapResponse, CareerRoadmap } from '@/types/roadmap';
 
 const openai = new OpenAI({
@@ -212,82 +212,38 @@ async function createInfographicImage(
 ): Promise<Buffer> {
     const width = 1792;
     const height = 1024;
-
-    // Create canvas
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-
-    // White background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-
-    // Set text properties - use system fonts that are always available
-    ctx.fillStyle = '#1a1a1a'; // Dark text
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    // Draw main title at top
-    ctx.font = 'bold 72px sans-serif';
-    ctx.fillText(`${careerName} Career Roadmap`, width / 2, 50);
-
-    // Calculate positions for steps (horizontal timeline)
     const stepSpacing = width / (steps.length + 1);
-    const stepY = height / 2 + 50; // Center vertical
+    const stepY = height / 2 + 50;
 
-    // Draw connecting line
-    ctx.strokeStyle = '#3b82f6'; // Blue
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(stepSpacing, stepY);
-    ctx.lineTo(width - stepSpacing, stepY);
-    ctx.stroke();
-
-    // Draw step numbers and titles
-    steps.forEach((step, index) => {
+    // Create SVG with embedded text
+    const svg = `
+<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${width}" height="${height}" fill="#ffffff"/>
+  
+  <!-- Main Title -->
+  <text x="${width / 2}" y="80" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#1a1a1a" text-anchor="middle">${escapeXml(careerName)} Career Roadmap</text>
+  
+  <!-- Connecting Line -->
+  <line x1="${stepSpacing}" y1="${stepY}" x2="${width - stepSpacing}" y2="${stepY}" stroke="#3b82f6" stroke-width="4"/>
+  
+  ${steps.map((step, index) => {
         const stepX = stepSpacing * (index + 1);
-
-        // Draw step number in circle
-        ctx.fillStyle = '#2563eb'; // Blue
-        ctx.beginPath();
-        ctx.arc(stepX, stepY, 50, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Step number text (white)
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 42px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(step.number.toString(), stepX, stepY);
-
-        // Step title below circle
-        ctx.fillStyle = '#1a1a1a';
-        ctx.font = 'bold 36px sans-serif';
-        ctx.textBaseline = 'top';
+        const titleLines = wrapText(step.title, stepSpacing * 0.9, 36);
         
-        // Wrap text if needed
-        const maxWidth = stepSpacing * 0.9;
-        const words = step.title.split(' ');
-        let line = '';
-        let y = stepY + 70;
+        return `
+  <!-- Step ${step.number} -->
+  <circle cx="${stepX}" cy="${stepY}" r="50" fill="#2563eb"/>
+  <text x="${stepX}" y="${stepY + 8}" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#ffffff" text-anchor="middle">${step.number}</text>
+  ${titleLines.map((line, lineIndex) => `
+  <text x="${stepX}" y="${stepY + 70 + (lineIndex * 45)}" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#1a1a1a" text-anchor="middle">${escapeXml(line)}</text>`).join('')}
+        `;
+    }).join('')}
+</svg>`;
 
-        words.forEach((word) => {
-            const testLine = line + word + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && line !== '') {
-                ctx.fillText(line.trim(), stepX, y);
-                line = word + ' ';
-                y += 45;
-            } else {
-                line = testLine;
-            }
-        });
-        if (line.trim()) {
-            ctx.fillText(line.trim(), stepX, y);
-        }
-    });
-
-    // Convert to buffer
-    return canvas.toBuffer('image/png');
+    // Convert SVG to PNG using sharp
+    return await sharp(Buffer.from(svg))
+        .png()
+        .toBuffer();
 }
 
 async function createMilestoneRoadmapImage(
@@ -296,114 +252,98 @@ async function createMilestoneRoadmapImage(
 ): Promise<Buffer> {
     const width = 1792;
     const height = 1024;
-
-    // Create canvas
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-
-    // White background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-
-    // Set text properties
-    ctx.fillStyle = '#1a1a1a';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    // Draw main title at top
-    ctx.font = 'bold 72px sans-serif';
-    ctx.fillText(careerName, width / 2, 40);
-
-    // Draw finish line label at top right
-    ctx.font = 'bold 56px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(careerName, width - 50, 40);
-    ctx.textAlign = 'center';
-
-    // Calculate positions for steps (ascending staircase)
     const startX = width * 0.12;
     const endX = width * 0.88;
     const startY = height * 0.75;
     const endY = height * 0.25;
     const stepCount = steps.length;
+    const blockWidth = 120;
+    const blockHeight = 60;
 
-    // Draw connecting path
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    steps.forEach((step, index) => {
+    // Build path points
+    const pathPoints = steps.map((step, index) => {
         const progress = index / (stepCount - 1);
         const stepX = startX + (endX - startX) * progress;
         const stepY = startY - (startY - endY) * progress;
-        if (index === 0) {
-            ctx.moveTo(stepX, stepY);
+        return { x: stepX, y: stepY };
+    });
+
+    // Create SVG
+    const svg = `
+<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${width}" height="${height}" fill="#ffffff"/>
+  
+  <!-- Main Title -->
+  <text x="${width / 2}" y="70" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#1a1a1a" text-anchor="middle">${escapeXml(careerName)}</text>
+  
+  <!-- Finish Line Label -->
+  <text x="${width - 50}" y="70" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="#1a1a1a" text-anchor="end">${escapeXml(careerName)}</text>
+  
+  <!-- Connecting Path -->
+  <path d="M ${pathPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}" stroke="#3b82f6" stroke-width="4" fill="none"/>
+  
+  ${steps.map((step, index) => {
+        const { x: stepX, y: stepY } = pathPoints[index];
+        const titleLines = wrapText(step.title, 350, 32);
+        
+        return `
+  <!-- Step ${step.number} Block -->
+  <rect x="${stepX - blockWidth / 2}" y="${stepY - blockHeight / 2}" width="${blockWidth}" height="${blockHeight}" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  
+  <!-- Step Number Circle -->
+  <circle cx="${stepX}" cy="${stepY - blockHeight / 2 - 30}" r="30" fill="#2563eb"/>
+  <text x="${stepX}" y="${stepY - blockHeight / 2 - 30 + 8}" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">${step.number}</text>
+  
+  <!-- Step Title -->
+  ${titleLines.map((line, lineIndex) => `
+  <text x="${stepX + blockWidth / 2 + 20}" y="${stepY - 20 + (lineIndex * 40)}" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#1a1a1a">${escapeXml(line)}</text>`).join('')}
+        `;
+    }).join('')}
+</svg>`;
+
+    // Convert SVG to PNG using sharp
+    return await sharp(Buffer.from(svg))
+        .png()
+        .toBuffer();
+}
+
+// Helper function to escape XML/SVG special characters
+function escapeXml(text: string): string {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+// Helper function to wrap text (simple approximation)
+function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
+    // Simple approximation: ~0.6 * fontSize per character
+    const avgCharWidth = fontSize * 0.6;
+    const maxChars = Math.floor(maxWidth / avgCharWidth);
+    
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    words.forEach((word) => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (testLine.length <= maxChars) {
+            currentLine = testLine;
         } else {
-            ctx.lineTo(stepX, stepY);
-        }
-    });
-    ctx.stroke();
-
-    // Draw step numbers and titles
-    steps.forEach((step, index) => {
-        const progress = index / (stepCount - 1);
-        const stepX = startX + (endX - startX) * progress;
-        const stepY = startY - (startY - endY) * progress;
-
-        // Draw step block (rectangle)
-        const blockWidth = 120;
-        const blockHeight = 60;
-        ctx.fillStyle = '#dbeafe'; // Light blue
-        ctx.fillRect(stepX - blockWidth / 2, stepY - blockHeight / 2, blockWidth, blockHeight);
-        
-        // Border
-        ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(stepX - blockWidth / 2, stepY - blockHeight / 2, blockWidth, blockHeight);
-
-        // Draw step number in circle on top of block
-        ctx.fillStyle = '#2563eb';
-        ctx.beginPath();
-        ctx.arc(stepX, stepY - blockHeight / 2 - 30, 30, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Step number text
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 32px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(step.number.toString(), stepX, stepY - blockHeight / 2 - 30);
-
-        // Step title (to the right of block)
-        ctx.fillStyle = '#1a1a1a';
-        ctx.font = 'bold 32px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        
-        // Wrap text if needed
-        const maxWidth = 350;
-        const words = step.title.split(' ');
-        let line = '';
-        let y = stepY - 20;
-
-        words.forEach((word) => {
-            const testLine = line + word + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && line !== '') {
-                ctx.fillText(line.trim(), stepX + blockWidth / 2 + 20, y);
-                line = word + ' ';
-                y += 40;
-            } else {
-                line = testLine;
+            if (currentLine) {
+                lines.push(currentLine);
             }
-        });
-        if (line.trim()) {
-            ctx.fillText(line.trim(), stepX + blockWidth / 2 + 20, y);
+            currentLine = word;
         }
-        ctx.textAlign = 'center';
     });
 
-    // Convert to buffer
-    return canvas.toBuffer('image/png');
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+
+    return lines.length > 0 ? lines : [text];
 }
 
 async function uploadImageToStorage(
