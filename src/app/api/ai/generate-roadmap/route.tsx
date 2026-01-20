@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import { ImageResponse } from '@vercel/og';
 import type { RoadmapResponse, CareerRoadmap } from '@/types/roadmap';
 
 const openai = new OpenAI({
@@ -116,10 +115,10 @@ Return ONLY a valid JSON object with this exact structure:
         // Generate formatted content
         const formattedContent = formatRoadmapContent(roadmapData);
 
-        // Generate roadmap images programmatically (no DALL-E - full control)
-        console.log('Creating infographic...');
+        // Generate roadmap images using DALL-E
+        console.log('Creating infographic with DALL-E...');
         
-        // Create structured roadmap data
+        // Create structured roadmap data for prompts
         const roadmapStructure = {
             careerName: roadmapData.careerName,
             totalSteps: roadmapData.steps.length,
@@ -129,30 +128,32 @@ Return ONLY a valid JSON object with this exact structure:
             }))
         };
         
-        // Create infographic entirely with canvas (no DALL-E)
-        const infographicBuffer = await createInfographicImage(
+        // Generate infographic using DALL-E
+        const infographicDallEUrl = await generateImageWithDallE(
             roadmapStructure.careerName,
-            roadmapStructure.steps
+            roadmapStructure.steps,
+            'infographic'
         );
         
-        // Upload the image
+        // Download and upload the infographic
         const infographicUrl = await uploadImageToStorage(
-            infographicBuffer,
+            infographicDallEUrl,
             userId,
             'infographic'
         );
 
-        console.log('Creating milestone roadmap...');
+        console.log('Creating milestone roadmap with DALL-E...');
         
-        // Create milestone roadmap entirely with canvas (no DALL-E)
-        const milestoneBuffer = await createMilestoneRoadmapImage(
+        // Generate milestone roadmap using DALL-E
+        const milestoneDallEUrl = await generateImageWithDallE(
             roadmapStructure.careerName,
-            roadmapStructure.steps
+            roadmapStructure.steps,
+            'milestone'
         );
         
-        // Upload the image
+        // Download and upload the milestone roadmap
         const milestoneRoadmapUrl = await uploadImageToStorage(
-            milestoneBuffer,
+            milestoneDallEUrl,
             userId,
             'milestone'
         );
@@ -206,361 +207,67 @@ Return ONLY a valid JSON object with this exact structure:
     }
 }
 
-async function createInfographicImage(
+async function generateImageWithDallE(
     careerName: string,
-    steps: Array<{ number: number; title: string }>
-): Promise<Buffer> {
-    const width = 1792;
-    const height = 1024;
-    const stepSpacing = width / (steps.length + 1);
-
-    // Use @vercel/og for reliable text rendering
-    const imageResponse = new ImageResponse(
-        (
-            <div
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    backgroundColor: '#ffffff',
-                    padding: '40px',
-                }}
-            >
-                {/* Main Title */}
-                <div
-                    style={{
-                        fontSize: 72,
-                        fontWeight: 'bold',
-                        color: '#1a1a1a',
-                        marginBottom: '60px',
-                        textAlign: 'center',
-                        display: 'flex',
-                    }}
-                >
-                    {careerName} Career Roadmap
-                </div>
-
-                {/* Timeline Container */}
-                <div
-                    style={{
-                        position: 'relative',
-                        width: '100%',
-                        display: 'flex',
-                        justifyContent: 'space-around',
-                        alignItems: 'center',
-                        marginTop: '100px',
-                    }}
-                >
-                    {/* Connecting Line */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: `${(stepSpacing / width) * 100}%`,
-                            right: `${(stepSpacing / width) * 100}%`,
-                            height: '4px',
-                            backgroundColor: '#3b82f6',
-                            zIndex: 0,
-                            display: 'flex',
-                        }}
-                    />
-
-                    {/* Steps Container */}
-                    <div
-                        style={{
-                            position: 'relative',
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'space-around',
-                            alignItems: 'center',
-                            zIndex: 1,
-                        }}
-                    >
-                        {steps.map((step) => {
-                        const titleLines = wrapText(step.title, stepSpacing * 0.9, 36);
-
-                        return (
-                            <div
-                                key={step.number}
-                                style={{
-                                    position: 'relative',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    zIndex: 1,
-                                }}
-                            >
-                                {/* Step Number Circle */}
-                                <div
-                                    style={{
-                                        width: '100px',
-                                        height: '100px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#2563eb',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginBottom: '20px',
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            fontSize: 42,
-                                            fontWeight: 'bold',
-                                            color: '#ffffff',
-                                            display: 'block',
-                                        }}
-                                    >
-                                        {step.number}
-                                    </span>
-                                </div>
-
-                                {/* Step Title */}
-                                <div
-                                    style={{
-                                        fontSize: 36,
-                                        fontWeight: 'bold',
-                                        color: '#1a1a1a',
-                                        textAlign: 'center',
-                                        maxWidth: `${(stepSpacing * 0.9 / width) * 100}%`,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                    }}
-                                >
-                                    {titleLines.map((line, lineIndex) => (
-                                        <div key={lineIndex} style={{ display: 'flex' }}>{line}</div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                    </div>
-                </div>
-            </div>
-        ),
-        {
-            width,
-            height,
-        }
-    );
-
-    // Convert ImageResponse to Buffer
-    const arrayBuffer = await imageResponse.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-}
-
-async function createMilestoneRoadmapImage(
-    careerName: string,
-    steps: Array<{ number: number; title: string }>
-): Promise<Buffer> {
-    const width = 1792;
-    const height = 1024;
-
-    // Use @vercel/og for reliable text rendering
-    const imageResponse = new ImageResponse(
-        (
-            <div
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    backgroundColor: '#ffffff',
-                    padding: '40px',
-                    position: 'relative',
-                }}
-            >
-                {/* Main Title */}
-                <div
-                    style={{
-                        fontSize: 72,
-                        fontWeight: 'bold',
-                        color: '#1a1a1a',
-                        textAlign: 'center',
-                        marginBottom: '20px',
-                        display: 'flex',
-                    }}
-                >
-                    {careerName}
-                </div>
-
-                {/* Finish Line Label */}
-                <div
-                    style={{
-                        fontSize: 56,
-                        fontWeight: 'bold',
-                        color: '#1a1a1a',
-                        textAlign: 'right',
-                        position: 'absolute',
-                        top: '40px',
-                        right: '50px',
-                        display: 'flex',
-                    }}
-                >
-                    {careerName}
-                </div>
-
-                {/* Steps Container */}
-                <div
-                    style={{
-                        position: 'relative',
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '100px 150px',
-                    }}
-                >
-                    {/* Steps Wrapper */}
-                    <div
-                        style={{
-                            position: 'relative',
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                        }}
-                    >
-                        {steps.map((step, index) => {
-                        const progress = index / (steps.length - 1);
-                        const leftPercent = 12 + progress * 76; // 12% to 88%
-                        const topPercent = 75 - progress * 50; // 75% to 25%
-                        const titleLines = wrapText(step.title, 350, 32);
-
-                        return (
-                            <div
-                                key={step.number}
-                                style={{
-                                    position: 'absolute',
-                                    left: `${leftPercent}%`,
-                                    top: `${topPercent}%`,
-                                    transform: 'translate(-50%, -50%)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                {/* Step Block */}
-                                <div
-                                    style={{
-                                        width: '120px',
-                                        height: '60px',
-                                        backgroundColor: '#dbeafe',
-                                        border: '2px solid #2563eb',
-                                        borderRadius: '4px',
-                                        marginBottom: '30px',
-                                        display: 'flex',
-                                    }}
-                                />
-
-                                {/* Step Number Circle */}
-                                <div
-                                    style={{
-                                        width: '60px',
-                                        height: '60px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#2563eb',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginBottom: '20px',
-                                        position: 'absolute',
-                                        top: '-30px',
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            fontSize: 32,
-                                            fontWeight: 'bold',
-                                            color: '#ffffff',
-                                            display: 'block',
-                                        }}
-                                    >
-                                        {step.number}
-                                    </span>
-                                </div>
-
-                                {/* Step Title */}
-                                <div
-                                    style={{
-                                        fontSize: 32,
-                                        fontWeight: 'bold',
-                                        color: '#1a1a1a',
-                                        textAlign: 'left',
-                                        marginLeft: '80px',
-                                        maxWidth: '350px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                    }}
-                                >
-                                    {titleLines.map((line, lineIndex) => (
-                                        <div key={lineIndex} style={{ display: 'flex' }}>{line}</div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                    </div>
-
-                    {/* Connecting Path (simplified as diagonal line) */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            left: '12%',
-                            bottom: '25%',
-                            width: '76%',
-                            height: '4px',
-                            backgroundColor: '#3b82f6',
-                            transform: 'rotate(-25deg)',
-                            transformOrigin: 'left bottom',
-                            zIndex: 0,
-                            display: 'flex',
-                        }}
-                    />
-                </div>
-            </div>
-        ),
-        {
-            width,
-            height,
-        }
-    );
-
-    // Convert ImageResponse to Buffer
-    const arrayBuffer = await imageResponse.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-}
-
-// Helper function to wrap text (simple approximation)
-function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
-    // Simple approximation: ~0.6 * fontSize per character
-    const avgCharWidth = fontSize * 0.6;
-    const maxChars = Math.floor(maxWidth / avgCharWidth);
+    steps: Array<{ number: number; title: string }>,
+    type: 'infographic' | 'milestone'
+): Promise<string> {
+    // Create prompt based on type
+    let prompt: string;
     
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    words.forEach((word) => {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        if (testLine.length <= maxChars) {
-            currentLine = testLine;
-        } else {
-            if (currentLine) {
-                lines.push(currentLine);
-            }
-            currentLine = word;
-        }
-    });
-
-    if (currentLine) {
-        lines.push(currentLine);
+    if (type === 'infographic') {
+        const stepsList = steps.map(step => `Step ${step.number}: ${step.title}`).join(', ');
+        prompt = `Create a professional career roadmap infographic for "${careerName}". 
+        
+The image should show:
+- A horizontal timeline from left to right
+- ${steps.length} numbered steps/circles connected by a line
+- Each step labeled: ${stepsList}
+- Clean, modern design with blue and white color scheme
+- Professional typography
+- Title at the top: "${careerName} Career Roadmap"
+- Infographic style, suitable for sharing on social media
+- No text that's too small to read
+- 16:9 aspect ratio, high quality`;
+    } else {
+        const stepsList = steps.map(step => `Step ${step.number}: ${step.title}`).join(', ');
+        prompt = `Create a professional milestone roadmap image for "${careerName}". 
+        
+The image should show:
+- A diagonal path from bottom-left to top-right
+- ${steps.length} milestone markers along the path
+- Each milestone labeled: ${stepsList}
+- A finish line at the top-right with "${careerName}" text
+- Clean, modern design with blue and white color scheme
+- Professional typography
+- Title at the top: "${careerName}"
+- Milestone/achievement style, suitable for sharing
+- No text that's too small to read
+- 16:9 aspect ratio, high quality`;
     }
 
-    return lines.length > 0 ? lines : [text];
+    try {
+        // Generate image using DALL-E 3
+        const response = await openai.images.generate({
+            model: 'dall-e-3',
+            prompt: prompt,
+            n: 1,
+            size: '1792x1024',
+            quality: 'standard',
+        });
+
+        const imageUrl = response.data?.[0]?.url;
+        if (!imageUrl) {
+            throw new Error('Failed to generate image with DALL-E');
+        }
+
+        return imageUrl;
+    } catch (error) {
+        console.error('DALL-E generation error:', error);
+        throw error;
+    }
 }
+
 
 async function uploadImageToStorage(
     imageUrl: string | Buffer,
