@@ -110,21 +110,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     email: data.user.email,
                 });
 
-                // Create user record in users table
-                const { error: userError } = await supabase.from('users').insert({
+                // Create/update user record in users table (trigger will also create it, but we update with form data)
+                const { error: userError } = await supabase.from('users').upsert({
                     id: data.user.id,
                     email: data.user.email!,
                     full_name: fullName,
                     linkedin_link: linkedinLink || null,
+                }, {
+                    onConflict: 'id'
                 });
 
                 if (userError) {
                     authLogger.error(userError, { context: 'createUserRecord', userId: data.user.id });
                 }
 
-                // Create profile record
-                const { error: profileError } = await supabase.from('profile').insert({
+                // Create profile record (if doesn't exist)
+                const { error: profileError } = await supabase.from('profile').upsert({
                     user_id: data.user.id,
+                }, {
+                    onConflict: 'user_id'
                 });
 
                 if (profileError) {

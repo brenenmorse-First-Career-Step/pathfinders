@@ -185,8 +185,15 @@ CREATE POLICY "Users can view own data" ON users
 CREATE POLICY "Users can update own data" ON users
   FOR UPDATE USING (auth.uid() = id);
 
+-- Allow users to insert their own record (needed during signup)
 CREATE POLICY "Users can insert own data" ON users
   FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Also allow service role to insert (for triggers)
+CREATE POLICY "Service role can insert users" ON users
+  FOR INSERT 
+  TO service_role
+  WITH CHECK (true);
 
 -- ============================================
 -- STEP 12: CREATE RLS POLICIES - PROFILE
@@ -262,6 +269,36 @@ CREATE POLICY "Users can update own payments" ON user_payments
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- ============================================
+-- STEP 17: CREATE TRIGGER TO AUTO-CREATE USER RECORD
+-- ============================================
+-- This trigger automatically creates a users table record when auth.users is created
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, full_name, linkedin_link)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'linkedin_link', NULL)
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = COALESCE(EXCLUDED.full_name, users.full_name),
+    linkedin_link = COALESCE(EXCLUDED.linkedin_link, users.linkedin_link);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop trigger if exists
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Create trigger
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================
 -- SUCCESS MESSAGE
 -- ============================================
 DO $$
@@ -269,5 +306,6 @@ BEGIN
   RAISE NOTICE '✅ Database recreated successfully!';
   RAISE NOTICE '✅ All tables created with correct schema';
   RAISE NOTICE '✅ RLS policies applied';
+  RAISE NOTICE '✅ Auto-create trigger for users table added';
   RAISE NOTICE '✅ Ready to use - no user data (fresh start)';
 END $$;
