@@ -63,11 +63,23 @@ export default function ResumesPage() {
         const paymentCompleted = sessionStorage.getItem('payment_completed');
         if (paymentCompleted === 'true') {
             sessionStorage.removeItem('payment_completed');
-            // Wait a bit for webhook to process, then refresh
-            setTimeout(() => {
+            // Poll for updates after payment (webhook might take a few seconds)
+            let pollCount = 0;
+            const maxPolls = 5; // Poll 5 times over 10 seconds
+            const pollInterval = setInterval(() => {
+                pollCount++;
                 checkPaymentStatus();
                 fetchResumes();
-            }, 2000);
+                
+                if (pollCount >= maxPolls) {
+                    clearInterval(pollInterval);
+                }
+            }, 2000); // Poll every 2 seconds
+            
+            return () => {
+                clearInterval(pollInterval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
         
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -103,6 +115,7 @@ export default function ResumesPage() {
         }
 
         try {
+            setLoading(true);
             const supabase = createBrowserClient();
             // Fetch all resumes for the user
             const { data, error } = await supabase
@@ -139,24 +152,54 @@ export default function ResumesPage() {
     };
 
     const handleDeleteResume = async (resumeId: string) => {
+        if (!user) {
+            alert('You must be logged in to delete resumes');
+            return;
+        }
+
         if (!confirm('Are you sure you want to delete this resume? This action cannot be undone.')) {
             return;
         }
 
         try {
             const supabase = createBrowserClient();
+            
+            // First verify the resume belongs to the user
+            const { data: resume, error: fetchError } = await supabase
+                .from('resumes')
+                .select('id, user_id')
+                .eq('id', resumeId)
+                .single();
+
+            if (fetchError || !resume) {
+                throw new Error('Resume not found');
+            }
+
+            if (resume.user_id !== user.id) {
+                throw new Error('You do not have permission to delete this resume');
+            }
+
+            // Delete the resume
             const { error } = await supabase
                 .from('resumes')
                 .delete()
-                .eq('id', resumeId);
+                .eq('id', resumeId)
+                .eq('user_id', user.id); // Double-check user ownership
 
-            if (error) throw error;
+            if (error) {
+                console.error('Delete error:', error);
+                throw error;
+            }
 
-            // Refresh the list
-            fetchResumes();
+            // Remove from local state immediately for better UX
+            setResumes(prev => prev.filter(r => r.id !== resumeId));
+            
+            // Refresh the list to ensure consistency
+            await fetchResumes();
         } catch (error) {
             console.error('Error deleting resume:', error);
-            alert('Failed to delete resume. Please try again.');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete resume';
+            alert(`Error: ${errorMessage}. Please try again.`);
         }
     };
 
@@ -225,12 +268,25 @@ export default function ResumesPage() {
                         <h1 className="text-3xl font-bold text-charcoal mb-2">My Resumes</h1>
                         <p className="text-gray-600">Manage and download your professional resumes</p>
                     </div>
-                    <Link
-                        href="/builder/step-1"
-                        className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors"
-                    >
-                        + Create New Resume
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => {
+                                setLoading(true);
+                                fetchResumes();
+                                checkPaymentStatus();
+                            }}
+                            className="px-4 py-2 border-2 border-career-blue text-career-blue font-semibold rounded-lg hover:bg-soft-sky transition-colors disabled:opacity-50"
+                            disabled={loading}
+                        >
+                            {loading ? 'Refreshing...' : '🔄 Refresh'}
+                        </button>
+                        <Link
+                            href="/builder/step-1"
+                            className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors"
+                        >
+                            + Create New Resume
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Resumes List */}
