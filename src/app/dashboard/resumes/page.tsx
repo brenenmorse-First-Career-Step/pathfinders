@@ -35,8 +35,9 @@ export default function ResumesPage() {
             fetchResumes();
             checkPaymentStatus();
         }
+        // Only run once when user changes, not on every render
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
+    }, [user?.id]); // Use user.id instead of user object to prevent unnecessary re-runs
 
     // Debug: Log resumes state changes
     useEffect(() => {
@@ -49,6 +50,8 @@ export default function ResumesPage() {
     // Refresh payment status when page becomes visible (e.g., after returning from payment)
     useEffect(() => {
         if (!user) return;
+
+        let pollInterval: NodeJS.Timeout | null = null;
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -66,23 +69,26 @@ export default function ResumesPage() {
             // Poll for updates after payment (webhook might take a few seconds)
             let pollCount = 0;
             const maxPolls = 5; // Poll 5 times over 10 seconds
-            const pollInterval = setInterval(() => {
+            pollInterval = setInterval(() => {
                 pollCount++;
                 checkPaymentStatus();
                 fetchResumes();
                 
                 if (pollCount >= maxPolls) {
-                    clearInterval(pollInterval);
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
                 }
             }, 2000); // Poll every 2 seconds
-            
-            return () => {
-                clearInterval(pollInterval);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
-            };
         }
         
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
