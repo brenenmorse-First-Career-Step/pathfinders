@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import sharp from 'sharp';
+import { ImageResponse } from '@vercel/og';
 import type { RoadmapResponse, CareerRoadmap } from '@/types/roadmap';
 
 const openai = new OpenAI({
@@ -213,37 +213,126 @@ async function createInfographicImage(
     const width = 1792;
     const height = 1024;
     const stepSpacing = width / (steps.length + 1);
-    const stepY = height / 2 + 50;
 
-    // Create SVG with embedded text
-    const svg = `
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="#ffffff"/>
-  
-  <!-- Main Title -->
-  <text x="${width / 2}" y="80" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#1a1a1a" text-anchor="middle">${escapeXml(careerName)} Career Roadmap</text>
-  
-  <!-- Connecting Line -->
-  <line x1="${stepSpacing}" y1="${stepY}" x2="${width - stepSpacing}" y2="${stepY}" stroke="#3b82f6" stroke-width="4"/>
-  
-  ${steps.map((step, index) => {
-        const stepX = stepSpacing * (index + 1);
-        const titleLines = wrapText(step.title, stepSpacing * 0.9, 36);
-        
-        return `
-  <!-- Step ${step.number} -->
-  <circle cx="${stepX}" cy="${stepY}" r="50" fill="#2563eb"/>
-  <text x="${stepX}" y="${stepY + 8}" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#ffffff" text-anchor="middle">${step.number}</text>
-  ${titleLines.map((line, lineIndex) => `
-  <text x="${stepX}" y="${stepY + 70 + (lineIndex * 45)}" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#1a1a1a" text-anchor="middle">${escapeXml(line)}</text>`).join('')}
-        `;
-    }).join('')}
-</svg>`;
+    // Use @vercel/og for reliable text rendering
+    const imageResponse = new ImageResponse(
+        (
+            <div
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    backgroundColor: '#ffffff',
+                    padding: '40px',
+                }}
+            >
+                {/* Main Title */}
+                <div
+                    style={{
+                        fontSize: 72,
+                        fontWeight: 'bold',
+                        color: '#1a1a1a',
+                        marginBottom: '60px',
+                        textAlign: 'center',
+                    }}
+                >
+                    {careerName} Career Roadmap
+                </div>
 
-    // Convert SVG to PNG using sharp
-    return await sharp(Buffer.from(svg))
-        .png()
-        .toBuffer();
+                {/* Timeline Container */}
+                <div
+                    style={{
+                        position: 'relative',
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'space-around',
+                        alignItems: 'center',
+                        marginTop: '100px',
+                    }}
+                >
+                    {/* Connecting Line */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: `${(stepSpacing / width) * 100}%`,
+                            right: `${(stepSpacing / width) * 100}%`,
+                            height: '4px',
+                            backgroundColor: '#3b82f6',
+                            zIndex: 0,
+                        }}
+                    />
+
+                    {/* Steps */}
+                    {steps.map((step) => {
+                        const titleLines = wrapText(step.title, stepSpacing * 0.9, 36);
+
+                        return (
+                            <div
+                                key={step.number}
+                                style={{
+                                    position: 'relative',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    zIndex: 1,
+                                }}
+                            >
+                                {/* Step Number Circle */}
+                                <div
+                                    style={{
+                                        width: '100px',
+                                        height: '100px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#2563eb',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginBottom: '20px',
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            fontSize: 42,
+                                            fontWeight: 'bold',
+                                            color: '#ffffff',
+                                        }}
+                                    >
+                                        {step.number}
+                                    </span>
+                                </div>
+
+                                {/* Step Title */}
+                                <div
+                                    style={{
+                                        fontSize: 36,
+                                        fontWeight: 'bold',
+                                        color: '#1a1a1a',
+                                        textAlign: 'center',
+                                        maxWidth: `${(stepSpacing * 0.9 / width) * 100}%`,
+                                    }}
+                                >
+                                    {titleLines.map((line, lineIndex) => (
+                                        <div key={lineIndex}>{line}</div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        ),
+        {
+            width,
+            height,
+        }
+    );
+
+    // Convert ImageResponse to Buffer
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    return Buffer.from(arrayBuffer);
 }
 
 async function createMilestoneRoadmapImage(
@@ -252,69 +341,163 @@ async function createMilestoneRoadmapImage(
 ): Promise<Buffer> {
     const width = 1792;
     const height = 1024;
-    const startX = width * 0.12;
-    const endX = width * 0.88;
-    const startY = height * 0.75;
-    const endY = height * 0.25;
-    const stepCount = steps.length;
-    const blockWidth = 120;
-    const blockHeight = 60;
 
-    // Build path points
-    const pathPoints = steps.map((step, index) => {
-        const progress = index / (stepCount - 1);
-        const stepX = startX + (endX - startX) * progress;
-        const stepY = startY - (startY - endY) * progress;
-        return { x: stepX, y: stepY };
-    });
+    // Use @vercel/og for reliable text rendering
+    const imageResponse = new ImageResponse(
+        (
+            <div
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#ffffff',
+                    padding: '40px',
+                    position: 'relative',
+                }}
+            >
+                {/* Main Title */}
+                <div
+                    style={{
+                        fontSize: 72,
+                        fontWeight: 'bold',
+                        color: '#1a1a1a',
+                        textAlign: 'center',
+                        marginBottom: '20px',
+                    }}
+                >
+                    {careerName}
+                </div>
 
-    // Create SVG
-    const svg = `
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="#ffffff"/>
-  
-  <!-- Main Title -->
-  <text x="${width / 2}" y="70" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#1a1a1a" text-anchor="middle">${escapeXml(careerName)}</text>
-  
-  <!-- Finish Line Label -->
-  <text x="${width - 50}" y="70" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="#1a1a1a" text-anchor="end">${escapeXml(careerName)}</text>
-  
-  <!-- Connecting Path -->
-  <path d="M ${pathPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}" stroke="#3b82f6" stroke-width="4" fill="none"/>
-  
-  ${steps.map((step, index) => {
-        const { x: stepX, y: stepY } = pathPoints[index];
-        const titleLines = wrapText(step.title, 350, 32);
-        
-        return `
-  <!-- Step ${step.number} Block -->
-  <rect x="${stepX - blockWidth / 2}" y="${stepY - blockHeight / 2}" width="${blockWidth}" height="${blockHeight}" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  
-  <!-- Step Number Circle -->
-  <circle cx="${stepX}" cy="${stepY - blockHeight / 2 - 30}" r="30" fill="#2563eb"/>
-  <text x="${stepX}" y="${stepY - blockHeight / 2 - 30 + 8}" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">${step.number}</text>
-  
-  <!-- Step Title -->
-  ${titleLines.map((line, lineIndex) => `
-  <text x="${stepX + blockWidth / 2 + 20}" y="${stepY - 20 + (lineIndex * 40)}" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#1a1a1a">${escapeXml(line)}</text>`).join('')}
-        `;
-    }).join('')}
-</svg>`;
+                {/* Finish Line Label */}
+                <div
+                    style={{
+                        fontSize: 56,
+                        fontWeight: 'bold',
+                        color: '#1a1a1a',
+                        textAlign: 'right',
+                        position: 'absolute',
+                        top: '40px',
+                        right: '50px',
+                    }}
+                >
+                    {careerName}
+                </div>
 
-    // Convert SVG to PNG using sharp
-    return await sharp(Buffer.from(svg))
-        .png()
-        .toBuffer();
-}
+                {/* Steps Container */}
+                <div
+                    style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '100px 150px',
+                    }}
+                >
+                    {steps.map((step, index) => {
+                        const progress = index / (steps.length - 1);
+                        const leftPercent = 12 + progress * 76; // 12% to 88%
+                        const topPercent = 75 - progress * 50; // 75% to 25%
+                        const titleLines = wrapText(step.title, 350, 32);
 
-// Helper function to escape XML/SVG special characters
-function escapeXml(text: string): string {
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+                        return (
+                            <div
+                                key={step.number}
+                                style={{
+                                    position: 'absolute',
+                                    left: `${leftPercent}%`,
+                                    top: `${topPercent}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                {/* Step Block */}
+                                <div
+                                    style={{
+                                        width: '120px',
+                                        height: '60px',
+                                        backgroundColor: '#dbeafe',
+                                        border: '2px solid #2563eb',
+                                        borderRadius: '4px',
+                                        marginBottom: '30px',
+                                    }}
+                                />
+
+                                {/* Step Number Circle */}
+                                <div
+                                    style={{
+                                        width: '60px',
+                                        height: '60px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#2563eb',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginBottom: '20px',
+                                        position: 'absolute',
+                                        top: '-30px',
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            fontSize: 32,
+                                            fontWeight: 'bold',
+                                            color: '#ffffff',
+                                        }}
+                                    >
+                                        {step.number}
+                                    </span>
+                                </div>
+
+                                {/* Step Title */}
+                                <div
+                                    style={{
+                                        fontSize: 32,
+                                        fontWeight: 'bold',
+                                        color: '#1a1a1a',
+                                        textAlign: 'left',
+                                        marginLeft: '80px',
+                                        maxWidth: '350px',
+                                    }}
+                                >
+                                    {titleLines.map((line, lineIndex) => (
+                                        <div key={lineIndex}>{line}</div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Connecting Path (simplified as diagonal line) */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: '12%',
+                            bottom: '25%',
+                            width: '76%',
+                            height: '4px',
+                            backgroundColor: '#3b82f6',
+                            transform: 'rotate(-25deg)',
+                            transformOrigin: 'left bottom',
+                            zIndex: 0,
+                        }}
+                    />
+                </div>
+            </div>
+        ),
+        {
+            width,
+            height,
+        }
+    );
+
+    // Convert ImageResponse to Buffer
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    return Buffer.from(arrayBuffer);
 }
 
 // Helper function to wrap text (simple approximation)
