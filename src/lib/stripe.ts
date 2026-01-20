@@ -188,7 +188,10 @@ export function verifyWebhookSignature(payload: string | Buffer, signature: stri
         const stripe = getStripe();
         const webhookSecret = getWebhookSecret();
 
-        const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+        // Convert payload to Buffer if it's a string
+        const payloadBuffer = typeof payload === 'string' ? Buffer.from(payload) : payload;
+
+        const event = stripe.webhooks.constructEvent(payloadBuffer, signature, webhookSecret);
 
         stripeLogger.info('Webhook Verification', 'Signature verified successfully', {
             eventType: event.type,
@@ -196,8 +199,12 @@ export function verifyWebhookSignature(payload: string | Buffer, signature: stri
         });
 
         return event;
-    } catch (error) {
-        stripeLogger.error('Webhook Verification', error, { signature });
+    } catch (error: any) {
+        stripeLogger.error('Webhook Verification', error, { 
+            signature: signature?.substring(0, 20) + '...',
+            errorMessage: error.message,
+            errorType: error.type,
+        });
         return null;
     }
 }

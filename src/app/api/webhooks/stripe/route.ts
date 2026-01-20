@@ -24,7 +24,12 @@ export async function POST(request: NextRequest) {
         const event = verifyWebhookSignature(body, signature);
 
         if (!event) {
-            paymentLogger.error('Invalid webhook signature');
+            paymentLogger.error('Invalid webhook signature', {
+                hasSignature: !!signature,
+                hasBody: !!body,
+                bodyLength: body?.length,
+                webhookSecretSet: !!process.env.STRIPE_WEBHOOK_SECRET,
+            });
             return NextResponse.json(
                 { error: 'Invalid signature' },
                 { status: 400 }
@@ -221,9 +226,6 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// Disable body parsing for webhook
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+// Configure route for webhook handling
+// Note: In App Router, we handle raw body in the route itself
+export const runtime = 'nodejs';
