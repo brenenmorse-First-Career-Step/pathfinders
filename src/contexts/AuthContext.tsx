@@ -110,29 +110,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     email: data.user.email,
                 });
 
-                // Create/update user record in users table (trigger will also create it, but we update with form data)
-                const { error: userError } = await supabase.from('users').upsert({
-                    id: data.user.id,
-                    email: data.user.email!,
-                    full_name: fullName,
-                    linkedin_link: linkedinLink || null,
-                }, {
-                    onConflict: 'id'
-                });
+                // Update user record (trigger auto-creates it, we just update with form data)
+                const { error: userError } = await supabase
+                    .from('users')
+                    .update({
+                        email: data.user.email!,
+                        full_name: fullName,
+                        linkedin_link: linkedinLink || null,
+                    })
+                    .eq('id', data.user.id);
 
+                // If update fails (record doesn't exist), try insert
                 if (userError) {
-                    authLogger.error(userError, { context: 'createUserRecord', userId: data.user.id });
+                    authLogger.warn('Update failed, trying insert', { context: 'createUserRecord', userId: data.user.id, error: userError });
+                    const { error: insertError } = await supabase.from('users').insert({
+                        id: data.user.id,
+                        email: data.user.email!,
+                        full_name: fullName,
+                        linkedin_link: linkedinLink || null,
+                    });
+                    if (insertError) {
+                        authLogger.error(insertError, { context: 'createUserRecord', userId: data.user.id });
+                    }
                 }
 
-                // Create profile record (if doesn't exist)
-                const { error: profileError } = await supabase.from('profile').upsert({
-                    user_id: data.user.id,
-                }, {
-                    onConflict: 'user_id'
-                });
+                // Update or insert profile record
+                const { data: existingProfile } = await supabase
+                    .from('profile')
+                    .select('id')
+                    .eq('user_id', data.user.id)
+                    .single();
 
-                if (profileError) {
-                    authLogger.error(profileError, { context: 'createProfile', userId: data.user.id });
+                if (existingProfile) {
+                    // Profile exists, no need to do anything
+                    authLogger.info('Profile already exists', { context: 'createProfile', userId: data.user.id });
+                } else {
+                    // Profile doesn't exist, create it
+                    const { error: profileError } = await supabase.from('profile').insert({
+                        user_id: data.user.id,
+                    });
+                    if (profileError) {
+                        authLogger.error(profileError, { context: 'createProfile', userId: data.user.id });
+                    }
                 }
             }
 
