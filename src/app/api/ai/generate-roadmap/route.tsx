@@ -462,12 +462,14 @@ async function generateMilestoneRoadmapImage(
         charcoal: '#263238',
     };
 
-    // Calculate spacing for horizontal layout
-    const margin = 120;
-    const availableWidth = width - (margin * 2);
-    const stepWidth = availableWidth / steps.length;
-    const boxWidth = 280;
-    const boxHeight = 100;
+    // Calculate spacing for ladder/staircase layout
+    const margin = 150;
+    const availableHeight = height - (margin * 2) - 120; // Leave space for title
+    const stepHeight = availableHeight / steps.length;
+    const stepWidth = 320;
+    const stepDepth = 60; // How much each step moves to the right
+    const startX = margin + 100; // Starting X position
+    const startY = margin + 120; // Starting Y position (below title)
 
     // Get step color based on brand colors
     const getStepColor = (index: number) => {
@@ -485,9 +487,8 @@ async function generateMilestoneRoadmapImage(
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    backgroundColor: '#F5F5F5', // Light grey background like template
-                    padding: '80px 100px',
-                    justifyContent: 'center',
+                    backgroundColor: '#F5F5F5', // Light grey background
+                    padding: '60px 80px',
                 }}
             >
                 {/* Title */}
@@ -495,7 +496,7 @@ async function generateMilestoneRoadmapImage(
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
-                        marginBottom: '100px',
+                        marginBottom: '40px',
                     }}
                 >
                     <div
@@ -511,21 +512,34 @@ async function generateMilestoneRoadmapImage(
                     </div>
                 </div>
 
-                {/* Steps Container - Horizontal Layout */}
+                {/* Steps Container - Ladder/Staircase Layout */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
+                        height: '100%',
                         display: 'flex',
-                        justifyContent: 'space-around',
-                        alignItems: 'flex-start',
-                        paddingLeft: `${margin}px`,
-                        paddingRight: `${margin}px`,
                     }}
                 >
+                    {/* Connecting line (ladder side) */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: `${startX - 40}px`,
+                            top: `${startY}px`,
+                            bottom: `${margin}px`,
+                            width: '6px',
+                            background: `linear-gradient(180deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
+                            borderRadius: '3px',
+                            zIndex: 0,
+                        }}
+                    />
+
                     {steps.map((step, index) => {
                         const stepColor = getStepColor(index);
-                        const stepX = (index * stepWidth) + (stepWidth / 2);
+                        const stepY = startY + (index * stepHeight);
+                        const stepX = startX + (index * stepDepth); // Each step moves right
+                        const titleLines = wrapText(step.title, stepWidth - 40, 24);
 
                         return (
                             <div
@@ -533,80 +547,58 @@ async function generateMilestoneRoadmapImage(
                                 style={{
                                     position: 'absolute',
                                     left: `${stepX}px`,
-                                    top: '0px',
-                                    transform: 'translateX(-50%)',
+                                    top: `${stepY}px`,
                                     display: 'flex',
-                                    flexDirection: 'column',
+                                    flexDirection: 'row',
                                     alignItems: 'center',
-                                    width: `${boxWidth}px`,
+                                    zIndex: 1,
                                 }}
                             >
-                                {/* Icon placeholder (circle above) */}
+                                {/* Connecting line from ladder to step */}
                                 <div
                                     style={{
-                                        width: '80px',
-                                        height: '80px',
-                                        borderRadius: '50%',
-                                        backgroundColor: `${stepColor}20`,
-                                        border: `3px solid ${stepColor}`,
+                                        width: '40px',
+                                        height: '4px',
+                                        backgroundColor: stepColor,
+                                        marginRight: '20px',
                                         display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginBottom: '30px',
                                     }}
-                                >
-                                    <div
-                                        style={{
-                                            width: '50px',
-                                            height: '50px',
-                                            borderRadius: '50%',
-                                            backgroundColor: stepColor,
-                                            display: 'flex',
-                                        }}
-                                    />
-                                </div>
+                                />
 
-                                {/* Step Block with number */}
+                                {/* Step Block (like a step/plank) */}
                                 <div
                                     style={{
-                                        width: `${boxWidth}px`,
-                                        height: `${boxHeight}px`,
+                                        width: `${stepWidth}px`,
+                                        height: '100px',
                                         backgroundColor: stepColor,
                                         borderRadius: '12px',
                                         display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginBottom: '30px',
-                                        boxShadow: `0 6px 20px ${stepColor}40`,
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            fontSize: 32,
-                                            fontWeight: 'bold',
-                                            color: '#ffffff',
-                                            display: 'flex',
-                                        }}
-                                    >
-                                        {step.number} STEP
-                                    </span>
-                                </div>
-
-                                {/* Single Heading - Step Title (no duplicate) */}
-                                <div
-                                    style={{
-                                        display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
-                                        width: '100%',
+                                        justifyContent: 'center',
+                                        boxShadow: `0 8px 24px ${stepColor}40`,
+                                        padding: '20px',
                                     }}
                                 >
-                                    {/* Main heading - single heading only */}
+                                    {/* Step number */}
                                     <div
                                         style={{
                                             fontSize: 28,
                                             fontWeight: 'bold',
-                                            color: colors.charcoal,
+                                            color: '#ffffff',
+                                            marginBottom: '8px',
+                                            display: 'flex',
+                                        }}
+                                    >
+                                        STEP {step.number}
+                                    </div>
+                                    
+                                    {/* Step title */}
+                                    <div
+                                        style={{
+                                            fontSize: 24,
+                                            fontWeight: 'bold',
+                                            color: '#ffffff',
                                             textAlign: 'center',
                                             display: 'flex',
                                             width: '100%',
