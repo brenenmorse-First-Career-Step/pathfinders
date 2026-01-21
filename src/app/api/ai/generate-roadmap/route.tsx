@@ -462,14 +462,26 @@ async function generateMilestoneRoadmapImage(
         charcoal: '#263238',
     };
 
-    // Calculate spacing for ladder/staircase layout
-    const margin = 150;
-    const availableHeight = height - (margin * 2) - 120; // Leave space for title
-    const stepHeight = availableHeight / steps.length;
-    const stepWidth = 320;
-    const stepDepth = 60; // How much each step moves to the right
-    const startX = margin + 100; // Starting X position
-    const startY = margin + 120; // Starting Y position (below title)
+    // Calculate spacing for ladder/staircase layout - bottom-left to top-right
+    const margin = 120;
+    const titleHeight = 100;
+    const availableHeight = height - (margin * 2) - titleHeight;
+    const availableWidth = width - (margin * 2);
+    
+    // Step dimensions
+    const stepWidth = 300;
+    const stepHeight = 90;
+    const stepGap = 40; // Gap between steps to prevent overlap
+    
+    // Calculate positions: first step at bottom-left, last at top-right
+    const startX = margin + 80; // Starting X (left side)
+    const startY = height - margin - stepHeight; // Starting Y (bottom)
+    
+    // Calculate how much each step moves up and to the right
+    const totalVerticalMove = availableHeight - stepHeight;
+    const totalHorizontalMove = availableWidth - stepWidth - 80; // Leave space for ladder rail
+    const verticalStep = totalVerticalMove / (steps.length - 1);
+    const horizontalStep = totalHorizontalMove / (steps.length - 1);
 
     // Get step color based on brand colors
     const getStepColor = (index: number) => {
@@ -521,25 +533,29 @@ async function generateMilestoneRoadmapImage(
                         display: 'flex',
                     }}
                 >
-                    {/* Connecting line (ladder side) */}
+                    {/* Connecting line (ladder side rail) - diagonal from bottom-left to top-right */}
                     <div
                         style={{
                             position: 'absolute',
-                            left: `${startX - 40}px`,
-                            top: `${startY}px`,
+                            left: `${startX - 50}px`,
                             bottom: `${margin}px`,
                             width: '6px',
-                            background: `linear-gradient(180deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
+                            height: `${Math.sqrt(Math.pow(totalVerticalMove, 2) + Math.pow(totalHorizontalMove, 2))}px`,
+                            background: `linear-gradient(135deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
                             borderRadius: '3px',
+                            transform: `rotate(${Math.atan2(totalVerticalMove, totalHorizontalMove) * (180 / Math.PI)}deg)`,
+                            transformOrigin: 'bottom left',
                             zIndex: 0,
                         }}
                     />
 
                     {steps.map((step, index) => {
                         const stepColor = getStepColor(index);
-                        const stepY = startY + (index * stepHeight);
-                        const stepX = startX + (index * stepDepth); // Each step moves right
-                        const titleLines = wrapText(step.title, stepWidth - 40, 24);
+                        // Reverse index so step 1 is at bottom, last step at top
+                        const reversedIndex = steps.length - 1 - index;
+                        const stepY = startY - (reversedIndex * verticalStep);
+                        const stepX = startX + (reversedIndex * horizontalStep);
+                        const titleLines = wrapText(step.title, stepWidth - 40, 22);
 
                         return (
                             <div
@@ -554,13 +570,13 @@ async function generateMilestoneRoadmapImage(
                                     zIndex: 1,
                                 }}
                             >
-                                {/* Connecting line from ladder to step */}
+                                {/* Connecting line from ladder rail to step */}
                                 <div
                                     style={{
-                                        width: '40px',
+                                        width: '50px',
                                         height: '4px',
                                         backgroundColor: stepColor,
-                                        marginRight: '20px',
+                                        marginRight: '10px',
                                         display: 'flex',
                                     }}
                                 />
@@ -569,43 +585,54 @@ async function generateMilestoneRoadmapImage(
                                 <div
                                     style={{
                                         width: `${stepWidth}px`,
-                                        height: '100px',
+                                        height: `${stepHeight}px`,
                                         backgroundColor: stepColor,
                                         borderRadius: '12px',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        boxShadow: `0 8px 24px ${stepColor}40`,
-                                        padding: '20px',
+                                        boxShadow: `0 6px 20px ${stepColor}40`,
+                                        padding: '16px',
                                     }}
                                 >
                                     {/* Step number */}
                                     <div
                                         style={{
-                                            fontSize: 28,
+                                            fontSize: 26,
                                             fontWeight: 'bold',
                                             color: '#ffffff',
-                                            marginBottom: '8px',
+                                            marginBottom: '6px',
                                             display: 'flex',
                                         }}
                                     >
                                         STEP {step.number}
                                     </div>
                                     
-                                    {/* Step title */}
+                                    {/* Step title - wrapped if needed */}
                                     <div
                                         style={{
-                                            fontSize: 24,
+                                            fontSize: 22,
                                             fontWeight: 'bold',
                                             color: '#ffffff',
                                             textAlign: 'center',
                                             display: 'flex',
+                                            flexDirection: 'column',
                                             width: '100%',
-                                            justifyContent: 'center',
+                                            alignItems: 'center',
                                         }}
                                     >
-                                        {step.title}
+                                        {titleLines.map((line, lineIndex) => (
+                                            <div
+                                                key={lineIndex}
+                                                style={{
+                                                    display: 'flex',
+                                                    marginBottom: lineIndex < titleLines.length - 1 ? '4px' : '0',
+                                                }}
+                                            >
+                                                {line}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
