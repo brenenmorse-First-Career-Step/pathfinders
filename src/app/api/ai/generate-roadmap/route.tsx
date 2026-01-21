@@ -462,6 +462,21 @@ async function generateMilestoneRoadmapImage(
         charcoal: '#263238',
     };
 
+    // Calculate spacing for horizontal layout
+    const margin = 120;
+    const availableWidth = width - (margin * 2);
+    const stepWidth = availableWidth / steps.length;
+    const boxWidth = 280;
+    const boxHeight = 100;
+
+    // Get step color based on brand colors
+    const getStepColor = (index: number) => {
+        const colorIndex = index % 3;
+        if (colorIndex === 0) return colors.careerBlue;
+        if (colorIndex === 1) return colors.stepGreen;
+        return colors.optimismOrange;
+    };
+
     const imageResponse = new ImageResponse(
         (
             <div
@@ -470,206 +485,136 @@ async function generateMilestoneRoadmapImage(
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    background: `linear-gradient(135deg, ${colors.softSky} 0%, #ffffff 30%, #E8F5E9 100%)`,
-                    padding: '50px',
-                    position: 'relative',
+                    backgroundColor: '#F5F5F5', // Light grey background like template
+                    padding: '80px 100px',
+                    justifyContent: 'center',
                 }}
             >
                 {/* Title */}
                 <div
                     style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        marginBottom: '40px',
+                        justifyContent: 'center',
+                        marginBottom: '100px',
                     }}
                 >
                     <div
                         style={{
-                            fontSize: 76,
+                            fontSize: 64,
                             fontWeight: 'bold',
-                            color: colors.careerBlue,
+                            color: colors.charcoal,
+                            textAlign: 'center',
                             display: 'flex',
                         }}
                     >
-                        {careerName}
-                    </div>
-                    {/* Finish Line Badge */}
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-end',
-                        }}
-                    >
-                        <div
-                            style={{
-                                fontSize: 20,
-                                fontWeight: '600',
-                                color: colors.charcoal,
-                                marginBottom: '8px',
-                                display: 'flex',
-                            }}
-                        >
-                            FINISH LINE
-                        </div>
-                        <div
-                            style={{
-                                fontSize: 48,
-                                fontWeight: 'bold',
-                                color: colors.stepGreen,
-                                display: 'flex',
-                            }}
-                        >
-                            {careerName}
-                        </div>
+                        Milestone Roadmap
                     </div>
                 </div>
 
-                {/* Steps Container */}
+                {/* Steps Container - Horizontal Layout */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
-                        height: '100%',
                         display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        padding: '80px 150px',
+                        justifyContent: 'space-around',
+                        alignItems: 'flex-start',
+                        paddingLeft: `${margin}px`,
+                        paddingRight: `${margin}px`,
                     }}
                 >
-                    {/* Diagonal Path with gradient */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            left: '12%',
-                            bottom: '25%',
-                            width: '76%',
-                            height: '8px',
-                            background: `linear-gradient(135deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
-                            transform: 'rotate(-25deg)',
-                            transformOrigin: 'left bottom',
-                            borderRadius: '4px',
-                            zIndex: 0,
-                            boxShadow: `0 4px 12px ${colors.careerBlue}30`,
-                        }}
-                    />
-
-                    {/* Steps */}
                     {steps.map((step, index) => {
-                        const progress = index / (steps.length - 1);
-                        // Diagonal path coordinates
-                        const pathStartX = 12; // 12% from left
-                        const pathEndX = 88; // 88% from left
-                        const pathStartY = 75; // 75% from top
-                        const pathEndY = 25; // 25% from top
-                        
-                        const stepX = pathStartX + (pathEndX - pathStartX) * progress;
-                        const stepY = pathStartY - (pathStartY - pathEndY) * progress;
-                        
-                        // Alternate colors for visual interest
-                        const stepColor = index % 3 === 0 
-                            ? colors.careerBlue 
-                            : index % 3 === 1 
-                            ? colors.stepGreen 
-                            : colors.optimismOrange;
-                        
-                        // Calculate text position to avoid overlap
-                        // Alternate text position: left side for even steps, right side for odd steps
-                        const textSide = index % 2 === 0 ? 'left' : 'right';
-                        const textOffsetX = textSide === 'left' ? -200 : 200;
-                        const textAlign = textSide === 'left' ? 'right' : 'left';
-                        
-                        // Wrap text properly
-                        const titleLines = wrapText(step.title, 320, 26);
+                        const stepColor = getStepColor(index);
+                        const stepX = (index * stepWidth) + (stepWidth / 2);
 
                         return (
                             <div
                                 key={step.number}
                                 style={{
                                     position: 'absolute',
-                                    left: `${stepX}%`,
-                                    top: `${stepY}%`,
-                                    transform: 'translate(-50%, -50%)',
+                                    left: `${stepX}px`,
+                                    top: '0px',
+                                    transform: 'translateX(-50%)',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
-                                    zIndex: 1,
+                                    width: `${boxWidth}px`,
                                 }}
                             >
-                                {/* Step Block */}
+                                {/* Icon placeholder (circle above) */}
                                 <div
                                     style={{
-                                        width: '130px',
-                                        height: '65px',
+                                        width: '80px',
+                                        height: '80px',
+                                        borderRadius: '50%',
                                         backgroundColor: `${stepColor}20`,
                                         border: `3px solid ${stepColor}`,
-                                        borderRadius: '10px',
-                                        marginBottom: '40px',
-                                        display: 'flex',
-                                        boxShadow: `0 4px 12px ${stepColor}30`,
-                                    }}
-                                />
-
-                                {/* Step Number Circle */}
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        top: '-32px',
-                                        width: '64px',
-                                        height: '64px',
-                                        borderRadius: '50%',
-                                        backgroundColor: stepColor,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        boxShadow: `0 4px 12px ${stepColor}40`,
+                                        marginBottom: '30px',
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            width: '50px',
+                                            height: '50px',
+                                            borderRadius: '50%',
+                                            backgroundColor: stepColor,
+                                            display: 'flex',
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Step Block with number */}
+                                <div
+                                    style={{
+                                        width: `${boxWidth}px`,
+                                        height: `${boxHeight}px`,
+                                        backgroundColor: stepColor,
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginBottom: '30px',
+                                        boxShadow: `0 6px 20px ${stepColor}40`,
                                     }}
                                 >
                                     <span
                                         style={{
-                                            fontSize: 36,
+                                            fontSize: 32,
                                             fontWeight: 'bold',
                                             color: '#ffffff',
                                             display: 'flex',
                                         }}
                                     >
-                                        {step.number}
+                                        {step.number} STEP
                                     </span>
                                 </div>
 
-                                {/* Step Title - Positioned to avoid overlap */}
+                                {/* Single Heading - Step Title (no duplicate) */}
                                 <div
                                     style={{
-                                        position: 'absolute',
-                                        left: `${textOffsetX}px`,
-                                        top: '50%',
-                                        transform: textSide === 'left' 
-                                            ? 'translateX(-100%) translateY(-50%)' 
-                                            : 'translateX(0) translateY(-50%)',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        alignItems: textSide === 'left' ? 'flex-end' : 'flex-start',
-                                        width: '320px',
+                                        alignItems: 'center',
+                                        width: '100%',
                                     }}
                                 >
-                                    {titleLines.map((line, lineIndex) => (
-                                        <div
-                                            key={lineIndex}
-                                            style={{
-                                                fontSize: 26,
-                                                fontWeight: 'normal',
-                                                color: colors.charcoal,
-                                                textAlign: textAlign,
-                                                marginBottom: lineIndex < titleLines.length - 1 ? '5px' : '0',
-                                                display: 'flex',
-                                                width: '100%',
-                                                justifyContent: textSide === 'left' ? 'flex-end' : 'flex-start',
-                                            }}
-                                        >
-                                            {line}
-                                        </div>
-                                    ))}
+                                    {/* Main heading - single heading only */}
+                                    <div
+                                        style={{
+                                            fontSize: 28,
+                                            fontWeight: 'bold',
+                                            color: colors.charcoal,
+                                            textAlign: 'center',
+                                            display: 'flex',
+                                            width: '100%',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        {step.title}
+                                    </div>
                                 </div>
                             </div>
                         );
