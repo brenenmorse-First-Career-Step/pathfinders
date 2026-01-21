@@ -218,18 +218,23 @@ async function generateInfographicImage(
     const availableWidth = width - (margin * 2);
     const boxWidth = 180;
     const boxSpacing = (availableWidth - (boxWidth * steps.length)) / (steps.length - 1);
-    const timelineY = height * 0.5; // Center of image
 
-    // Color gradient from orange to pink (matching reference)
-    const getStepColor = (index: number, total: number) => {
-        const progress = index / (total - 1);
-        // Gradient from orange (#FFD8A3) to pink (#D87093)
-        if (progress < 0.2) return '#FFD8A3'; // Light orange
-        if (progress < 0.4) return '#E6AA7C'; // Medium orange
-        if (progress < 0.6) return '#F08080'; // Coral
-        if (progress < 0.8) return '#F7B7C8'; // Light pink
-        if (progress < 0.95) return '#EC90B6'; // Medium pink
-        return '#D87093'; // Dark pink
+    // Brand colors
+    const colors = {
+        careerBlue: '#1E88E5',
+        careerBlueDark: '#1565C0',
+        stepGreen: '#43A047',
+        optimismOrange: '#FB8C00',
+        softSky: '#E3F2FD',
+        charcoal: '#263238',
+    };
+
+    // Use brand colors - alternate between blue, green, and orange
+    const getStepColor = (index: number) => {
+        const colorIndex = index % 3;
+        if (colorIndex === 0) return colors.careerBlue;
+        if (colorIndex === 1) return colors.stepGreen;
+        return colors.optimismOrange;
     };
 
     const imageResponse = new ImageResponse(
@@ -240,8 +245,9 @@ async function generateInfographicImage(
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    backgroundColor: '#2F363F', // Dark grey background
+                    backgroundColor: colors.charcoal, // Dark charcoal background
                     padding: '60px 80px',
+                    justifyContent: 'center',
                 }}
             >
                 {/* Title */}
@@ -249,7 +255,7 @@ async function generateInfographicImage(
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
-                        marginBottom: '80px',
+                        marginBottom: '60px',
                     }}
                 >
                     <div
@@ -265,15 +271,16 @@ async function generateInfographicImage(
                     </div>
                 </div>
 
-                {/* Timeline Container */}
+                {/* Timeline Container - Centered vertically */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
-                        height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        justifyContent: 'center',
+                        flex: 1,
                     }}
                 >
                     {/* Arrow-shaped boxes timeline */}
@@ -285,11 +292,10 @@ async function generateInfographicImage(
                             justifyContent: 'flex-start',
                             alignItems: 'center',
                             paddingLeft: `${margin}px`,
-                            marginTop: '40px',
                         }}
                     >
                         {steps.map((step, index) => {
-                            const stepColor = getStepColor(index, steps.length);
+                            const stepColor = getStepColor(index);
                             const stepX = (index * (boxWidth + boxSpacing));
                             const titleLines = wrapText(step.title, 240, 22);
                             const isEven = index % 2 === 0;
