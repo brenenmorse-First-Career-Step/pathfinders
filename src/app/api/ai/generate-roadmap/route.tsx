@@ -213,20 +213,23 @@ async function generateInfographicImage(
     const width = 1792;
     const height = 1024;
     
-    // Calculate even spacing - leave margins on both sides
-    const margin = 200;
+    // Calculate spacing for arrow boxes
+    const margin = 120;
     const availableWidth = width - (margin * 2);
-    const stepSpacing = availableWidth / steps.length;
-    const timelineY = height * 0.6; // Position timeline at 60% from top
+    const boxWidth = 180;
+    const boxSpacing = (availableWidth - (boxWidth * steps.length)) / (steps.length - 1);
+    const timelineY = height * 0.5; // Center of image
 
-    // Brand colors
-    const colors = {
-        careerBlue: '#1E88E5',
-        careerBlueDark: '#1565C0',
-        stepGreen: '#43A047',
-        optimismOrange: '#FB8C00',
-        softSky: '#E3F2FD',
-        charcoal: '#263238',
+    // Color gradient from orange to pink (matching reference)
+    const getStepColor = (index: number, total: number) => {
+        const progress = index / (total - 1);
+        // Gradient from orange (#FFD8A3) to pink (#D87093)
+        if (progress < 0.2) return '#FFD8A3'; // Light orange
+        if (progress < 0.4) return '#E6AA7C'; // Medium orange
+        if (progress < 0.6) return '#F08080'; // Coral
+        if (progress < 0.8) return '#F7B7C8'; // Light pink
+        if (progress < 0.95) return '#EC90B6'; // Medium pink
+        return '#D87093'; // Dark pink
     };
 
     const imageResponse = new ImageResponse(
@@ -237,38 +240,23 @@ async function generateInfographicImage(
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    background: `linear-gradient(180deg, #ffffff 0%, ${colors.softSky} 100%)`,
-                    padding: '80px 100px',
+                    backgroundColor: '#2F363F', // Dark grey background
+                    padding: '60px 80px',
                 }}
             >
-                {/* Title Section */}
+                {/* Title */}
                 <div
                     style={{
                         display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
+                        justifyContent: 'center',
                         marginBottom: '80px',
                     }}
                 >
-                    {/* Main Title */}
                     <div
                         style={{
                             fontSize: 72,
                             fontWeight: 'bold',
-                            color: colors.careerBlue,
-                            textAlign: 'center',
-                            marginBottom: '16px',
-                            display: 'flex',
-                        }}
-                    >
-                        {careerName}
-                    </div>
-                    {/* Subtitle */}
-                    <div
-                        style={{
-                            fontSize: 40,
-                            fontWeight: '600',
-                            color: colors.charcoal,
+                            color: '#ffffff',
                             textAlign: 'center',
                             display: 'flex',
                         }}
@@ -282,52 +270,29 @@ async function generateInfographicImage(
                     style={{
                         position: 'relative',
                         width: '100%',
+                        height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        flex: 1,
                     }}
                 >
-                    {/* Horizontal Timeline Line */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: '0px',
-                            left: `${margin}px`,
-                            right: `${margin}px`,
-                            height: '6px',
-                            background: `linear-gradient(90deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
-                            borderRadius: '3px',
-                            zIndex: 0,
-                        }}
-                    />
-
-                    {/* Steps - Evenly Spaced */}
+                    {/* Arrow-shaped boxes timeline */}
                     <div
                         style={{
                             position: 'relative',
                             width: '100%',
                             display: 'flex',
                             justifyContent: 'flex-start',
-                            alignItems: 'flex-start',
+                            alignItems: 'center',
                             paddingLeft: `${margin}px`,
-                            zIndex: 1,
+                            marginTop: '40px',
                         }}
                     >
                         {steps.map((step, index) => {
-                            // Alternate colors: blue, green, orange
-                            const stepColor = index % 3 === 0 
-                                ? colors.careerBlue 
-                                : index % 3 === 1 
-                                ? colors.stepGreen 
-                                : colors.optimismOrange;
-                            
-                            // Calculate step X position - center of each step's space
-                            const stepX = (index * stepSpacing) + (stepSpacing / 2);
-                            
-                            // Wrap text to fit within step column (leave padding)
-                            const textMaxWidth = stepSpacing * 0.75;
-                            const titleLines = wrapText(step.title, textMaxWidth, 28);
+                            const stepColor = getStepColor(index, steps.length);
+                            const stepX = (index * (boxWidth + boxSpacing));
+                            const titleLines = wrapText(step.title, 240, 22);
+                            const isEven = index % 2 === 0;
 
                             return (
                                 <div
@@ -336,57 +301,118 @@ async function generateInfographicImage(
                                         position: 'absolute',
                                         left: `${stepX}px`,
                                         top: '0px',
-                                        transform: 'translateX(-50%)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
-                                        width: `${textMaxWidth}px`,
                                     }}
                                 >
-                                    {/* Step Number Circle */}
+                                    {/* Arrow-shaped box - using connected rectangles */}
                                     <div
                                         style={{
-                                            width: '100px',
-                                            height: '100px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        {/* Main box */}
+                                        <div
+                                            style={{
+                                                width: `${boxWidth}px`,
+                                                height: '80px',
+                                                backgroundColor: stepColor,
+                                                borderRadius: '8px 0 0 8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            {/* Step number */}
+                                            <span
+                                                style={{
+                                                    fontSize: 36,
+                                                    fontWeight: 'bold',
+                                                    color: '#ffffff',
+                                                    display: 'flex',
+                                                }}
+                                            >
+                                                {step.number}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Arrow point (triangle shape using border) */}
+                                        {index < steps.length - 1 && (
+                                            <div
+                                                style={{
+                                                    width: '0',
+                                                    height: '0',
+                                                    borderTop: '40px solid transparent',
+                                                    borderBottom: '40px solid transparent',
+                                                    borderLeft: `30px solid ${stepColor}`,
+                                                    display: 'flex',
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Event marker (circle with icon placeholder) */}
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            top: isEven ? '-120px' : '100px',
+                                            width: '60px',
+                                            height: '60px',
                                             borderRadius: '50%',
-                                            backgroundColor: stepColor,
+                                            border: '2px dashed #F8F8F8',
+                                            backgroundColor: 'transparent',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            marginBottom: '24px',
-                                            boxShadow: `0 4px 12px ${stepColor}50`,
                                         }}
                                     >
-                                        <span
+                                        <div
                                             style={{
-                                                fontSize: 48,
-                                                fontWeight: 'bold',
-                                                color: '#ffffff',
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#F8F8F8',
                                                 display: 'flex',
                                             }}
-                                        >
-                                            {step.number}
-                                        </span>
+                                        />
                                     </div>
 
-                                    {/* Step Title - Centered and Wrapped */}
+                                    {/* Dotted line connecting box to marker */}
                                     <div
                                         style={{
+                                            position: 'absolute',
+                                            top: isEven ? '-60px' : '80px',
+                                            width: '2px',
+                                            height: '60px',
+                                            borderLeft: '2px dashed #F8F8F8',
+                                            display: 'flex',
+                                        }}
+                                    />
+
+                                    {/* Event description text */}
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            top: isEven ? '-180px' : '180px',
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
-                                            width: '100%',
+                                            width: '240px',
                                         }}
                                     >
                                         {titleLines.map((line, lineIndex) => (
                                             <div
                                                 key={lineIndex}
                                                 style={{
-                                                    fontSize: 28,
+                                                    fontSize: 22,
                                                     fontWeight: 'normal',
-                                                    color: colors.charcoal,
+                                                    color: '#F8F8F8',
                                                     textAlign: 'center',
-                                                    marginBottom: lineIndex < titleLines.length - 1 ? '6px' : '0',
+                                                    marginBottom: lineIndex < titleLines.length - 1 ? '4px' : '0',
                                                     display: 'flex',
                                                     width: '100%',
                                                     justifyContent: 'center',
