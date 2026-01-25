@@ -210,9 +210,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw error;
             }
 
+            // Explicitly clear user and session state immediately
+            setUser(null);
+            setSession(null);
+            setLoading(false);
+
             authLogger.info('Sign out successful', { userId: user?.id });
         } catch (error) {
             authLogger.error(error as Error, { context: 'signOut', userId: user?.id });
+            // Still clear state even if there's an error
+            setUser(null);
+            setSession(null);
+            setLoading(false);
             throw error;
         }
     };

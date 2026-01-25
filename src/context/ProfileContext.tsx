@@ -135,8 +135,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           .eq('user_id', user.id)
           .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
-          dbLogger.error(profileError, { context: 'loadProfile', userId: user.id });
+        // Check for 406 or other critical errors
+        if (profileError) {
+          // 406 Not Acceptable usually means RLS policy issue
+          if (profileError.code === 'PGRST116') {
+            // No profile found - this is okay, we'll create one
+            logger.info('Profile Context', 'No profile found, will use defaults', { userId: user.id });
+          } else {
+            // For 406 or other errors, log and return early to prevent loop
+            dbLogger.error(profileError, { context: 'loadProfile', userId: user.id });
+            logger.warn('Profile Context', 'Failed to load profile, using defaults', { 
+              userId: user.id, 
+              error: profileError.message,
+              code: profileError.code 
+            });
+            // Set default profile and return early to prevent loop
+            setProfile({
+              ...initialProfile,
+              email: user.email || "",
+            });
+            setLoading(false);
+            return;
+          }
         }
 
         // Load experiences
@@ -246,6 +266,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         logger.info('Profile Context', 'Profile loaded successfully', { userId: user.id });
       } catch (error) {
         logger.error('Profile Context', error as Error, { userId: user.id });
+        // Set default profile on error to prevent loop
+        setProfile({
+          ...initialProfile,
+          email: user.email || "",
+        });
       } finally {
         setLoading(false);
       }
@@ -253,6 +278,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     loadProfile();
   }, [user, authLoading, supabase]);
+
+  // Reset profile when user logs out
+  useEffect(() => {
+    if (!user && !authLoading) {
+      setProfile(initialProfile);
+      setLoading(false);
+    }
+  }, [user, authLoading]);
 
   const updateProfile = async (updates: Partial<ProfileData>) => {
     if (!user) {
