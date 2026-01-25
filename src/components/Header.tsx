@@ -1,8 +1,30 @@
+'use client';
+
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 // Updated navigation - removed LinkedIn Builder, renamed to Builder
 
 export default function Header() {
+    const { user, loading, signOut } = useAuth();
+    const router = useRouter();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        try {
+            setIsLoggingOut(true);
+            await signOut();
+            router.push('/');
+            router.refresh();
+        } catch (error) {
+            console.error('Error signing out:', error);
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
+
     return (
         <header className="w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
@@ -40,18 +62,46 @@ export default function Header() {
                     </nav>
 
                     <div className="flex items-center gap-4">
-                        <Link
-                            href="/login"
-                            className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide"
-                        >
-                            Sign In
-                        </Link>
-                        <Link
-                            href="/signup"
-                            className="px-5 py-2.5 bg-career-blue text-white font-medium rounded-xl hover:bg-career-blue-dark transition-all duration-200 active:scale-[0.98]"
-                        >
-                            Get Started
-                        </Link>
+                        {loading ? (
+                            // Show loading state
+                            <div className="flex items-center gap-4">
+                                <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
+                                <div className="w-24 h-10 bg-gray-200 animate-pulse rounded-xl"></div>
+                            </div>
+                        ) : user ? (
+                            // Show Dashboard and Logout when user is logged in
+                            <>
+                                <Link
+                                    href="/dashboard"
+                                    className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide"
+                                >
+                                    Dashboard
+                                </Link>
+                                <button
+                                    onClick={handleLogout}
+                                    disabled={isLoggingOut}
+                                    className="px-5 py-2.5 bg-career-blue text-white font-medium rounded-xl hover:bg-career-blue-dark transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoggingOut ? 'Logging out...' : 'Logout'}
+                                </button>
+                            </>
+                        ) : (
+                            // Show Sign In and Get Started when user is not logged in
+                            <>
+                                <Link
+                                    href="/login"
+                                    className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    href="/signup"
+                                    className="px-5 py-2.5 bg-career-blue text-white font-medium rounded-xl hover:bg-career-blue-dark transition-all duration-200 active:scale-[0.98]"
+                                >
+                                    Get Started
+                                </Link>
+                            </>
+                        )}
 
                         {/* Mobile Menu Button */}
                         <button className="md:hidden p-2 text-charcoal hover:bg-soft-sky rounded-lg transition-colors">
@@ -73,9 +123,24 @@ export default function Header() {
                     <Link href="/career-roadmap" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
                         Career Roadmap
                     </Link>
-                    <Link href="/login" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
-                        Sign In
-                    </Link>
+                    {user ? (
+                        <>
+                            <Link href="/dashboard" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
+                                Dashboard
+                            </Link>
+                            <button
+                                onClick={handleLogout}
+                                disabled={isLoggingOut}
+                                className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2 text-left disabled:opacity-50"
+                            >
+                                {isLoggingOut ? 'Logging out...' : 'Logout'}
+                            </button>
+                        </>
+                    ) : (
+                        <Link href="/login" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
+                            Sign In
+                        </Link>
+                    )}
                 </nav>
             </div>
         </header>
