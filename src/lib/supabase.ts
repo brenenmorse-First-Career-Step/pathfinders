@@ -49,13 +49,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Client-side Supabase client (for use in Client Components)
+// Note: This should be memoized in components to avoid creating multiple instances
 export function createBrowserClient() {
     try {
         const client = createBrowserSupabaseClient(
             supabaseUrl!,
             supabaseAnonKey!
         );
-        supabaseLogger.info('Client Creation', 'Browser client created successfully');
+        // Only log in development to reduce console noise
+        if (process.env.NODE_ENV === 'development') {
+            supabaseLogger.info('Client Creation', 'Browser client created successfully');
+        }
         return client;
     } catch (error) {
         supabaseLogger.error('Client Creation', error, { type: 'browser' });
@@ -84,7 +88,10 @@ export function createAdminClient() {
                 persistSession: false,
             },
         });
-        supabaseLogger.info('Client Creation', 'Admin client created successfully');
+        // Only log in development to reduce console noise
+        if (process.env.NODE_ENV === 'development') {
+            supabaseLogger.info('Client Creation', 'Admin client created successfully');
+        }
         return client;
     } catch (error) {
         supabaseLogger.error('Client Creation', error, { type: 'admin' });

@@ -32,7 +32,10 @@ export async function createServerClient() {
                 },
             }
         );
-        supabaseLogger.info('Client Creation', 'Server client created successfully');
+        // Only log in development to reduce console noise
+        if (process.env.NODE_ENV === 'development') {
+            supabaseLogger.info('Client Creation', 'Server client created successfully');
+        }
         return client;
     } catch (error) {
         supabaseLogger.error('Client Creation', error, { type: 'server' });

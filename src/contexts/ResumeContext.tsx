@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createBrowserClient } from '@/lib/supabase';
 
@@ -42,11 +42,13 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
         setResumeDraft(prev => ({ ...prev, ...updates }));
     };
 
+    // Memoize Supabase client to prevent recreating on every render
+    const supabase = useMemo(() => createBrowserClient(), []);
+
     const saveResumeDraft = async () => {
         if (!user) return;
 
         try {
-            const supabase = createBrowserClient();
 
             // Save experiences to database
             if (resumeDraft.experiences.length > 0) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createBrowserClient } from "@/lib/supabase";
 import { logger, dbLogger } from "@/lib/logger";
@@ -113,7 +113,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const supabase = createBrowserClient();
+  // Memoize Supabase client to prevent recreating on every render
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   // Load profile data from database when user logs in
   useEffect(() => {

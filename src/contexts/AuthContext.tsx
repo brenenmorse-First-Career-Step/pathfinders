@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase';
 import { authLogger } from '@/lib/logger';
@@ -20,7 +20,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
-    const supabase = createBrowserClient();
+    // Memoize Supabase client to prevent recreating on every render
+    const supabase = useMemo(() => createBrowserClient(), []);
 
     useEffect(() => {
         // Get initial session
