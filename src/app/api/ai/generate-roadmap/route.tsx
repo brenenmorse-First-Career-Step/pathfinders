@@ -458,45 +458,33 @@ async function generateMilestoneRoadmapImage(
     const width = 1792;
     const height = 1024;
 
-    // Brand colors
-    const colors = {
-        careerBlue: '#1E88E5',
-        careerBlueDark: '#1565C0',
-        stepGreen: '#43A047',
-        optimismOrange: '#FB8C00',
-        softSky: '#E3F2FD',
-        charcoal: '#263238',
+    // Theme colors from TSX component: Orange (#F39200), Blue (#0072BC), Green (#39B54A), Red (#ED1C24)
+    const themeColors = {
+        orange: "#F39200",
+        blue: "#0072BC",
+        green: "#39B54A",
+        red: "#ED1C24",
+        charcoal: "#263238",
+        gray: "#6B7280",
     };
 
-    // Calculate spacing for ladder/staircase layout - bottom-left to top-right
-    const margin = 120;
-    const titleHeight = 100;
-    const availableHeight = height - (margin * 2) - titleHeight;
-    const availableWidth = width - (margin * 2);
-    
-    // Step dimensions - increased to accommodate descriptions
-    const stepWidth = 320;
-    const stepBoxHeight = 80; // Height of the colored step box
-    const descriptionHeight = 60; // Space for description below the box
-    const stepTotalHeight = stepBoxHeight + descriptionHeight + 20; // Total height including spacing
-    const stepGap = 50; // Gap between steps to prevent overlap
-    
-    // Calculate positions: first step at bottom-left, last at top-right
-    const startX = margin + 100; // Starting X (left side) - moved right to give more space
-    const startY = height - margin - stepTotalHeight; // Starting Y (bottom) - account for description space
-    
-    // Calculate how much each step moves up and to the right
-    const totalVerticalMove = availableHeight - stepTotalHeight;
-    const totalHorizontalMove = availableWidth - stepWidth - 100; // Leave space for ladder rail
-    const verticalStep = totalVerticalMove / (steps.length - 1);
-    const horizontalStep = totalHorizontalMove / (steps.length - 1);
+    // SVG Path Constants (matching TSX component, scaled for canvas)
+    // Original TSX: stepWidth=120, stepHeight=80, startX=50, startY=750, viewBox="0 0 1100 850"
+    // Scale factor: canvas is 1792x1024, but we'll use a scaled viewBox
+    const scaleX = width / 1100; // ~1.63
+    const scaleY = height / 850; // ~1.20
+    const stepWidth = 120 * scaleX;
+    const stepHeight = 80 * scaleY;
+    const startX = 50 * scaleX;
+    const startY = 750 * scaleY;
 
-    // Get step color based on brand colors
+    // Get step color based on 4-color cycle
     const getStepColor = (index: number) => {
-        const colorIndex = index % 3;
-        if (colorIndex === 0) return colors.careerBlue;
-        if (colorIndex === 1) return colors.stepGreen;
-        return colors.optimismOrange;
+        const colorIndex = index % 4;
+        if (colorIndex === 0) return themeColors.orange;
+        if (colorIndex === 1) return themeColors.blue;
+        if (colorIndex === 2) return themeColors.green;
+        return themeColors.red;
     };
 
     const imageResponse = new ImageResponse(
@@ -507,184 +495,287 @@ async function generateMilestoneRoadmapImage(
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    backgroundColor: '#F5F5F5', // Light grey background
-                    padding: '60px 80px',
+                    backgroundColor: '#FFFFFF',
+                    padding: '80px',
                 }}
             >
-                {/* Title */}
+                {/* Header Section */}
                 <div
                     style={{
                         display: 'flex',
-                        justifyContent: 'center',
-                        marginBottom: '40px',
+                        alignItems: 'center',
+                        gap: '24px',
+                        marginBottom: '64px',
+                        paddingBottom: '32px',
+                        borderBottom: '2px solid #E5E7EB',
                     }}
                 >
                     <div
                         style={{
-                            fontSize: 64,
-                            fontWeight: 'bold',
-                            color: colors.charcoal,
-                            textAlign: 'center',
+                            backgroundColor: themeColors.blue,
+                            padding: '16px',
+                            borderRadius: '16px',
                             display: 'flex',
                         }}
                     >
-                        Milestone Roadmap
+                        <div
+                            style={{
+                                width: '48px',
+                                height: '48px',
+                                backgroundColor: '#FFFFFF',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            📚
+                        </div>
+                    </div>
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+                        <h1
+                            style={{
+                                fontSize: '48px',
+                                fontWeight: 'bold',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                            }}
+                        >
+                            <span style={{ color: themeColors.orange }}>Milestone</span>
+                            <span style={{ color: themeColors.blue }}>Roadmap</span>
+                        </h1>
+                        <p
+                            style={{
+                                fontSize: '14px',
+                                color: themeColors.gray,
+                                fontWeight: '500',
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                marginTop: '4px',
+                            }}
+                        >
+                            Your Professional Roadmap
+                        </p>
                     </div>
                 </div>
 
-                {/* Steps Container - Ladder/Staircase Layout */}
+                {/* Timeline Container with SVG */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
-                        height: '100%',
+                        height: `${850 * scaleY}px`,
                         display: 'flex',
                     }}
                 >
-                    {/* Connecting line (ladder side rail) - diagonal from bottom-left to top-right */}
-                    <div
+                    {/* SVG Path Container */}
+                    <svg
                         style={{
                             position: 'absolute',
-                            left: `${startX - 60}px`,
-                            bottom: `${margin}px`,
-                            width: '6px',
-                            height: `${Math.sqrt(Math.pow(totalVerticalMove, 2) + Math.pow(totalHorizontalMove, 2))}px`,
-                            background: `linear-gradient(135deg, ${colors.careerBlue} 0%, ${colors.stepGreen} 50%, ${colors.optimismOrange} 100%)`,
-                            borderRadius: '3px',
-                            transform: `rotate(${Math.atan2(totalVerticalMove, totalHorizontalMove) * (180 / Math.PI)}deg)`,
-                            transformOrigin: 'bottom left',
-                            zIndex: 0,
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
                         }}
-                    />
+                        viewBox={`0 0 ${1100 * scaleX} ${850 * scaleY}`}
+                    >
+                        {/* Dynamic Path Generation for Steps */}
+                        {steps.map((step, index) => {
+                            const stepColor = getStepColor(index);
+                            const strokeWidth = 20 * Math.min(scaleX, scaleY);
+                            
+                            if (index === steps.length - 1) {
+                                // Final Arrow
+                                const x = startX + index * stepWidth;
+                                const y = startY - index * stepHeight;
+                                const arrowLength = 100 * scaleX;
+                                const arrowHeight = 40 * scaleY;
+                                return (
+                                    <g key={step.number}>
+                                        <path
+                                            d={`M ${x} ${y} L ${x + arrowLength} ${y} L ${x + arrowLength} ${y - arrowHeight}`}
+                                            stroke={stepColor}
+                                            strokeWidth={strokeWidth}
+                                            strokeLinecap="round"
+                                            fill="none"
+                                        />
+                                        <path
+                                            d={`M ${x + arrowLength * 0.8} ${y - arrowHeight * 0.875} L ${x + arrowLength} ${y - arrowHeight * 1.625} L ${x + arrowLength * 1.2} ${y - arrowHeight * 0.875} Z`}
+                                            fill={stepColor}
+                                        />
+                                    </g>
+                                );
+                            }
 
+                            const currX = startX + index * stepWidth;
+                            const currY = startY - index * stepHeight;
+                            const nextX = startX + (index + 1) * stepWidth;
+                            const nextY = startY - (index + 1) * stepHeight;
+                            const cornerOffset = 20 * Math.min(scaleX, scaleY);
+
+                            return (
+                                <path
+                                    key={step.number}
+                                    d={`M ${currX} ${currY} L ${nextX - cornerOffset} ${currY} Q ${nextX} ${currY} ${nextX} ${currY - cornerOffset} L ${nextX} ${nextY}`}
+                                    stroke={stepColor}
+                                    strokeWidth={strokeWidth}
+                                    strokeLinecap="round"
+                                    fill="none"
+                                />
+                            );
+                        })}
+
+                        {/* Joint Circles */}
+                        {steps.map((step, index) => {
+                            const stepColor = getStepColor(index);
+                            const circleRadius = 10 * Math.min(scaleX, scaleY);
+                            return (
+                                <circle
+                                    key={`circle-${step.number}`}
+                                    cx={startX + index * stepWidth}
+                                    cy={startY - index * stepHeight}
+                                    r={circleRadius}
+                                    fill={stepColor}
+                                />
+                            );
+                        })}
+                    </svg>
+
+                    {/* Content Overlay */}
                     {steps.map((step, index) => {
                         const stepColor = getStepColor(index);
-                        // Reverse index so step 1 is at bottom, last step at top
-                        const reversedIndex = steps.length - 1 - index;
-                        const stepY = startY - (reversedIndex * verticalStep);
-                        const stepX = startX + (reversedIndex * horizontalStep);
-                        const titleLines = wrapText(step.title, stepWidth - 40, 20);
-                        // Get first 1-2 lines of description (limit to ~80 chars per line)
-                        const descriptionText = step.description || '';
-                        const descriptionLines = wrapText(descriptionText, stepWidth - 40, 16).slice(0, 2);
+                        const x = startX + index * stepWidth;
+                        const y = startY - index * stepHeight;
+                        const textWidth = 192 * scaleX;
+                        const titleLines = wrapText(step.title, textWidth, 12 * scaleY);
+                        const descriptionLines = wrapText(step.description || '', textWidth, 11 * scaleY).slice(0, 2);
 
                         return (
                             <div
-                                key={step.number}
+                                key={`content-${step.number}`}
                                 style={{
                                     position: 'absolute',
-                                    left: `${stepX}px`,
-                                    top: `${stepY}px`,
+                                    left: `${x}px`,
+                                    top: `${y}px`,
                                     display: 'flex',
-                                    flexDirection: 'column',
-                                    zIndex: 1,
                                 }}
                             >
-                                {/* Step Container with connecting line */}
+                                {/* Step Label on the path - translate-y-1/2 translate-x-4 */}
                                 <div
                                     style={{
+                                        position: 'absolute',
+                                        left: `${16 * scaleX}px`,
+                                        top: '0px',
+                                        transform: 'translateY(-50%)',
+                                        color: '#FFFFFF',
+                                        fontWeight: 'bold',
+                                        fontSize: `${10 * scaleY}px`,
+                                        whiteSpace: 'nowrap',
+                                        zIndex: 10,
                                         display: 'flex',
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
                                     }}
                                 >
-                                    {/* Connecting line from ladder rail to step */}
-                                    <div
-                                        style={{
-                                            width: '60px',
-                                            height: '4px',
-                                            backgroundColor: stepColor,
-                                            marginRight: '10px',
-                                        }}
-                                    />
-
-                                    {/* Step Block (like a step/plank) */}
-                                    <div
-                                        style={{
-                                            width: `${stepWidth}px`,
-                                            height: `${stepBoxHeight}px`,
-                                            backgroundColor: stepColor,
-                                            borderRadius: '12px',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            boxShadow: `0 6px 20px ${stepColor}40`,
-                                            padding: '12px 16px',
-                                            position: 'relative',
-                                        }}
-                                    >
-                                        {/* Step number - positioned at top left of box */}
-                                        <div
-                                            style={{
-                                                position: 'absolute',
-                                                top: '8px',
-                                                left: '12px',
-                                                fontSize: 18,
-                                                fontWeight: 'bold',
-                                                color: '#ffffff',
-                                                opacity: 0.9,
-                                                display: 'flex',
-                                            }}
-                                        >
-                                            STEP {step.number}
-                                        </div>
-                                        
-                                        {/* Step title - centered, wrapped if needed */}
-                                        <div
-                                            style={{
-                                                fontSize: 20,
-                                                fontWeight: 'bold',
-                                                color: '#ffffff',
-                                                textAlign: 'center',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                width: '100%',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                marginTop: '8px',
-                                            }}
-                                        >
-                                            {titleLines.map((line, lineIndex) => (
-                                                <div
-                                                    key={lineIndex}
-                                                    style={{
-                                                        display: 'flex',
-                                                        marginBottom: lineIndex < titleLines.length - 1 ? '4px' : '0',
-                                                    }}
-                                                >
-                                                    {line}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    STEP {step.number.toString().padStart(2, '0')}
                                 </div>
 
-                                {/* Description below the step box */}
+                                {/* Icon above the path - translate-y-[70px] -translate-x-4 */}
                                 <div
                                     style={{
-                                        marginTop: '12px',
-                                        marginLeft: `${60 + 10}px`, // Align with step box
-                                        width: `${stepWidth}px`,
-                                        display: descriptionLines.length > 0 ? 'flex' : 'none',
+                                        position: 'absolute',
+                                        left: `${-16 * scaleX}px`,
+                                        top: `${-70 * scaleY}px`,
+                                        transform: 'translateY(-50%)',
+                                        color: stepColor,
+                                        opacity: 0.2,
+                                        fontSize: `${24 * scaleY}px`,
+                                        display: 'flex',
+                                    }}
+                                >
+                                    ●
+                                </div>
+
+                                {/* Text Content below/beside the path - translate-y-8 translate-x-4 */}
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        left: `${16 * scaleX}px`,
+                                        top: `${32 * scaleY}px`,
+                                        width: `${textWidth}px`,
+                                        display: 'flex',
                                         flexDirection: 'column',
                                     }}
                                 >
-                                    {descriptionLines.map((line, lineIndex) => (
+                                    {/* Dots and Heading */}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: `${8 * scaleX}px`,
+                                            marginBottom: `${4 * scaleY}px`,
+                                        }}
+                                    >
                                         <div
-                                            key={lineIndex}
                                             style={{
-                                                fontSize: 16,
-                                                color: colors.charcoal,
-                                                textAlign: 'left',
-                                                lineHeight: '1.4',
-                                                marginBottom: lineIndex < descriptionLines.length - 1 ? '4px' : '0',
+                                                display: 'flex',
+                                                gap: `${2 * scaleX}px`,
+                                            }}
+                                        >
+                                            {[1, 2, 3].map((i) => (
+                                                <div
+                                                    key={i}
+                                                    style={{
+                                                        width: `${4 * scaleX}px`,
+                                                        height: `${4 * scaleX}px`,
+                                                        borderRadius: '50%',
+                                                        backgroundColor: stepColor,
+                                                        display: 'flex',
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <h3
+                                            style={{
+                                                fontSize: `${12 * scaleY}px`,
+                                                fontWeight: 'bold',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em',
+                                                color: stepColor,
                                                 display: 'flex',
                                             }}
                                         >
-                                            {line}
-                                        </div>
-                                    ))}
+                                            {step.title}
+                                        </h3>
+                                    </div>
+                                    
+                                    {/* Description */}
+                                    <p
+                                        style={{
+                                            fontSize: `${11 * scaleY}px`,
+                                            lineHeight: '1.4',
+                                            color: themeColors.gray,
+                                            fontWeight: '500',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                        }}
+                                    >
+                                        {descriptionLines.map((line, lineIndex) => (
+                                            <span
+                                                key={lineIndex}
+                                                style={{
+                                                    display: 'flex',
+                                                    marginBottom: lineIndex < descriptionLines.length - 1 ? `${2 * scaleY}px` : '0',
+                                                }}
+                                            >
+                                                {line}
+                                            </span>
+                                        ))}
+                                    </p>
                                 </div>
                             </div>
                         );
