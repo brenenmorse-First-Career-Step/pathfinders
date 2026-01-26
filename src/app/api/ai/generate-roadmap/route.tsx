@@ -485,7 +485,7 @@ async function generateMilestoneRoadmapImage(
     // Calculate startY: position steps to leave room for text below
     // Leave space for step number above, heading and description below
     const stepNumberSpace = 30 * scaleY; // Space above line for step numbers
-    const textSpace = 120 * scaleY; // Space below line for heading + description
+    const textSpace = 180 * scaleY; // Increased space below line for heading + description + bottom padding
     const startY = availableHeight - textSpace;
 
     // Get step color based on 4-color cycle
@@ -514,7 +514,7 @@ async function generateMilestoneRoadmapImage(
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
-                        marginBottom: '10px',
+                        marginBottom: '5px',
                     }}
                 >
                     <h1
@@ -649,12 +649,12 @@ async function generateMilestoneRoadmapImage(
                                     STEP {step.number.toString().padStart(2, '0')}
                                 </div>
 
-                                {/* Heading BELOW the line */}
+                                {/* Heading BELOW the line - positioned well below to avoid overlap */}
                                 <div
                                     style={{
                                         position: 'absolute',
                                         left: `${16 * scaleX}px`,
-                                        top: `${20 * scaleY}px`,
+                                        top: `${50 * scaleY}px`, // Increased from 20 to 50 to ensure clear separation from path
                                         width: `${textWidth}px`,
                                         display: 'flex',
                                         flexDirection: 'column',
@@ -667,7 +667,7 @@ async function generateMilestoneRoadmapImage(
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.05em',
                                             color: stepColor,
-                                            marginBottom: `${8 * scaleY}px`,
+                                            marginBottom: `${10 * scaleY}px`,
                                             display: 'flex',
                                         }}
                                     >
