@@ -456,7 +456,7 @@ async function generateMilestoneRoadmapImage(
     steps: Array<{ number: number; title: string; description: string }>
 ): Promise<Buffer> {
     const width = 1792;
-    const height = 1200; // Increased height to prevent content cutoff
+    const height = 1024;
 
     // Theme colors from TSX component: Orange (#F39200), Blue (#0072BC), Green (#39B54A), Red (#ED1C24)
     const themeColors = {
@@ -470,22 +470,22 @@ async function generateMilestoneRoadmapImage(
 
     // SVG Path Constants (matching TSX component, scaled for canvas)
     // Original TSX: stepWidth=120, stepHeight=80, startX=50, startY=750, viewBox="0 0 1100 850"
-    // Scale factor: canvas is 1792x1200, adjust to fit content properly
-    const padding = 80;
-    const headerHeight = 100;
+    // Scale factor: canvas is 1792x1024, adjust to fit content properly
+    const padding = 60;
+    const headerHeight = 80; // Reduced header height
     const availableHeight = height - padding * 2 - headerHeight;
     const availableWidth = width - padding * 2;
     
     // Use a more conservative scale to ensure content fits
-    const scaleX = availableWidth / 1100; // ~1.48
-    const scaleY = availableHeight / 950; // ~1.0 (using 950 to account for text below steps)
+    const scaleX = availableWidth / 1100; // ~1.52
+    const scaleY = availableHeight / 850; // ~1.06
     const stepWidth = 120 * scaleX;
     const stepHeight = 80 * scaleY;
     const startX = 50 * scaleX;
-    // Calculate startY: bottom step should be near bottom but leave room for text descriptions
-    // Total path height = (steps.length - 1) * stepHeight
-    // We want bottom step at: availableHeight - textSpace (about 100px for description)
-    const textSpace = 100 * scaleY;
+    // Calculate startY: position steps to leave room for text below
+    // Leave space for step number above, heading and description below
+    const stepNumberSpace = 30 * scaleY; // Space above line for step numbers
+    const textSpace = 120 * scaleY; // Space below line for heading + description
     const startY = availableHeight - textSpace;
 
     // Get step color based on 4-color cycle
@@ -514,7 +514,7 @@ async function generateMilestoneRoadmapImage(
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
-                        marginBottom: '30px',
+                        marginBottom: '10px',
                     }}
                 >
                     <h1
@@ -632,16 +632,15 @@ async function generateMilestoneRoadmapImage(
                                     display: 'flex',
                                 }}
                             >
-                                {/* Step Label on the path - translate-y-1/2 translate-x-4 */}
+                                {/* Step Number ABOVE the ladder line */}
                                 <div
                                     style={{
                                         position: 'absolute',
                                         left: `${16 * scaleX}px`,
-                                        top: '0px',
-                                        transform: 'translateY(-50%)',
-                                        color: '#FFFFFF',
+                                        top: `${-stepNumberSpace}px`,
+                                        color: stepColor,
                                         fontWeight: 'bold',
-                                        fontSize: `${10 * scaleY}px`,
+                                        fontSize: `${14 * scaleY}px`,
                                         whiteSpace: 'nowrap',
                                         zIndex: 10,
                                         display: 'flex',
@@ -650,80 +649,36 @@ async function generateMilestoneRoadmapImage(
                                     STEP {step.number.toString().padStart(2, '0')}
                                 </div>
 
-                                {/* Icon above the path - translate-y-[70px] -translate-x-4 */}
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        left: `${-16 * scaleX}px`,
-                                        top: `${-70 * scaleY}px`,
-                                        transform: 'translateY(-50%)',
-                                        color: stepColor,
-                                        opacity: 0.2,
-                                        fontSize: `${24 * scaleY}px`,
-                                        display: 'flex',
-                                    }}
-                                >
-                                    ●
-                                </div>
-
-                                {/* Text Content below/beside the path - translate-y-8 translate-x-4 */}
+                                {/* Heading BELOW the line */}
                                 <div
                                     style={{
                                         position: 'absolute',
                                         left: `${16 * scaleX}px`,
-                                        top: `${32 * scaleY}px`,
+                                        top: `${20 * scaleY}px`,
                                         width: `${textWidth}px`,
                                         display: 'flex',
                                         flexDirection: 'column',
                                     }}
                                 >
-                                    {/* Dots and Heading */}
-                                    <div
+                                    <h3
                                         style={{
+                                            fontSize: `${13 * scaleY}px`,
+                                            fontWeight: 'bold',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.05em',
+                                            color: stepColor,
+                                            marginBottom: `${8 * scaleY}px`,
                                             display: 'flex',
-                                            alignItems: 'center',
-                                            gap: `${8 * scaleX}px`,
-                                            marginBottom: `${4 * scaleY}px`,
                                         }}
                                     >
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                gap: `${2 * scaleX}px`,
-                                            }}
-                                        >
-                                            {[1, 2, 3].map((i) => (
-                                                <div
-                                                    key={i}
-                                                    style={{
-                                                        width: `${4 * scaleX}px`,
-                                                        height: `${4 * scaleX}px`,
-                                                        borderRadius: '50%',
-                                                        backgroundColor: stepColor,
-                                                        display: 'flex',
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
-                                        <h3
-                                            style={{
-                                                fontSize: `${12 * scaleY}px`,
-                                                fontWeight: 'bold',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.05em',
-                                                color: stepColor,
-                                                display: 'flex',
-                                            }}
-                                        >
-                                            {step.title}
-                                        </h3>
-                                    </div>
+                                        {step.title}
+                                    </h3>
                                     
-                                    {/* Description */}
+                                    {/* Description BELOW the heading */}
                                     <p
                                         style={{
                                             fontSize: `${11 * scaleY}px`,
-                                            lineHeight: '1.4',
+                                            lineHeight: '1.5',
                                             color: themeColors.gray,
                                             fontWeight: '500',
                                             display: 'flex',
@@ -735,7 +690,7 @@ async function generateMilestoneRoadmapImage(
                                                 key={lineIndex}
                                                 style={{
                                                     display: 'flex',
-                                                    marginBottom: lineIndex < descriptionLines.length - 1 ? `${2 * scaleY}px` : '0',
+                                                    marginBottom: lineIndex < descriptionLines.length - 1 ? `${4 * scaleY}px` : '0',
                                                 }}
                                             >
                                                 {line}
