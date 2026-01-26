@@ -159,6 +159,26 @@ export default function CareerRoadmapPage() {
 
 function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack: () => void }) {
     const { roadmap: roadmapData, infographicUrl, milestoneRoadmapUrl } = roadmap;
+    const [viewImage, setViewImage] = useState<string | null>(null);
+
+    const handleDownload = async (url: string, filename: string) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback to opening in new tab
+            window.open(url, '_blank');
+        }
+    };
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
@@ -192,33 +212,34 @@ function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack:
                                 <h2 className="text-2xl font-bold text-charcoal">
                                     Career Roadmap Infographic
                                 </h2>
-                                <button
-                                    onClick={() => {
-                                        const link = document.createElement('a');
-                                        link.href = infographicUrl;
-                                        link.download = `${roadmapData.careerName}-Infographic.png`;
-                                        link.click();
-                                    }}
-                                    className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Download
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setViewImage(infographicUrl)}
+                                        className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        View
+                                    </button>
+                                    <button
+                                        onClick={() => handleDownload(infographicUrl, `${roadmapData.careerName}-Infographic.png`)}
+                                        className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                    </button>
+                                </div>
                             </div>
                             <div className="relative group">
                                 <img
                                     src={infographicUrl}
                                     alt={`${roadmapData.careerName} Career Roadmap Infographic`}
-                                    className="w-full rounded-lg cursor-pointer"
-                                    onClick={() => window.open(infographicUrl, '_blank')}
+                                    className="w-full rounded-lg"
                                 />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-opacity flex items-center justify-center">
-                                    <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium bg-black bg-opacity-50 px-3 py-1 rounded">
-                                        Click to view full size
-                                    </span>
-                                </div>
                             </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -226,33 +247,34 @@ function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack:
                                 <h2 className="text-2xl font-bold text-charcoal">
                                     Milestone Roadmap
                                 </h2>
-                                <button
-                                    onClick={() => {
-                                        const link = document.createElement('a');
-                                        link.href = milestoneRoadmapUrl;
-                                        link.download = `${roadmapData.careerName}-Milestone-Roadmap.png`;
-                                        link.click();
-                                    }}
-                                    className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Download
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setViewImage(milestoneRoadmapUrl)}
+                                        className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        View
+                                    </button>
+                                    <button
+                                        onClick={() => handleDownload(milestoneRoadmapUrl, `${roadmapData.careerName}-Milestone-Roadmap.png`)}
+                                        className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                    </button>
+                                </div>
                             </div>
                             <div className="relative group">
                                 <img
                                     src={milestoneRoadmapUrl}
                                     alt={`${roadmapData.careerName} Milestone Roadmap`}
-                                    className="w-full rounded-lg cursor-pointer"
-                                    onClick={() => window.open(milestoneRoadmapUrl, '_blank')}
+                                    className="w-full rounded-lg"
                                 />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-opacity flex items-center justify-center">
-                                    <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium bg-black bg-opacity-50 px-3 py-1 rounded">
-                                        Click to view full size
-                                    </span>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -398,6 +420,32 @@ function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack:
             </main>
 
             <Footer />
+
+            {/* Image View Modal */}
+            {viewImage && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+                    onClick={() => setViewImage(null)}
+                >
+                    <div className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center">
+                        <button
+                            onClick={() => setViewImage(null)}
+                            className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 hover:bg-gray-200 transition-colors shadow-lg"
+                            aria-label="Close"
+                        >
+                            <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <img
+                            src={viewImage}
+                            alt="Roadmap view"
+                            className="max-w-full max-h-full object-contain rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
