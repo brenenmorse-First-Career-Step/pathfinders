@@ -456,7 +456,7 @@ async function generateMilestoneRoadmapImage(
     steps: Array<{ number: number; title: string; description: string }>
 ): Promise<Buffer> {
     const width = 1792;
-    const height = 1024;
+    const height = 1200; // Increased height to prevent content cutoff
 
     // Theme colors from TSX component: Orange (#F39200), Blue (#0072BC), Green (#39B54A), Red (#ED1C24)
     const themeColors = {
@@ -470,13 +470,23 @@ async function generateMilestoneRoadmapImage(
 
     // SVG Path Constants (matching TSX component, scaled for canvas)
     // Original TSX: stepWidth=120, stepHeight=80, startX=50, startY=750, viewBox="0 0 1100 850"
-    // Scale factor: canvas is 1792x1024, but we'll use a scaled viewBox
-    const scaleX = width / 1100; // ~1.63
-    const scaleY = height / 850; // ~1.20
+    // Scale factor: canvas is 1792x1200, adjust to fit content properly
+    const padding = 80;
+    const headerHeight = 100;
+    const availableHeight = height - padding * 2 - headerHeight;
+    const availableWidth = width - padding * 2;
+    
+    // Use a more conservative scale to ensure content fits
+    const scaleX = availableWidth / 1100; // ~1.48
+    const scaleY = availableHeight / 950; // ~1.0 (using 950 to account for text below steps)
     const stepWidth = 120 * scaleX;
     const stepHeight = 80 * scaleY;
     const startX = 50 * scaleX;
-    const startY = 750 * scaleY;
+    // Calculate startY: bottom step should be near bottom but leave room for text descriptions
+    // Total path height = (steps.length - 1) * stepHeight
+    // We want bottom step at: availableHeight - textSpace (about 100px for description)
+    const textSpace = 100 * scaleY;
+    const startY = availableHeight - textSpace;
 
     // Get step color based on 4-color cycle
     const getStepColor = (index: number) => {
@@ -496,73 +506,28 @@ async function generateMilestoneRoadmapImage(
                     display: 'flex',
                     flexDirection: 'column',
                     backgroundColor: '#FFFFFF',
-                    padding: '80px',
+                    padding: '60px 80px',
                 }}
             >
-                {/* Header Section */}
+                {/* Header Section - Simple Title Only */}
                 <div
                     style={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: '24px',
-                        marginBottom: '64px',
-                        paddingBottom: '32px',
-                        borderBottom: '2px solid #E5E7EB',
+                        justifyContent: 'center',
+                        marginBottom: '30px',
                     }}
                 >
-                    <div
+                    <h1
                         style={{
-                            backgroundColor: themeColors.blue,
-                            padding: '16px',
-                            borderRadius: '16px',
+                            fontSize: '64px',
+                            fontWeight: 'bold',
+                            color: themeColors.charcoal,
+                            textAlign: 'center',
                             display: 'flex',
                         }}
                     >
-                        <div
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                backgroundColor: '#FFFFFF',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            📚
-                        </div>
-                    </div>
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                        }}
-                    >
-                        <h1
-                            style={{
-                                fontSize: '48px',
-                                fontWeight: 'bold',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                            }}
-                        >
-                            <span style={{ color: themeColors.orange }}>Milestone</span>
-                            <span style={{ color: themeColors.blue }}>Roadmap</span>
-                        </h1>
-                        <p
-                            style={{
-                                fontSize: '14px',
-                                color: themeColors.gray,
-                                fontWeight: '500',
-                                letterSpacing: '0.1em',
-                                textTransform: 'uppercase',
-                                marginTop: '4px',
-                            }}
-                        >
-                            Your Professional Roadmap
-                        </p>
-                    </div>
+                        Milestone Roadmap
+                    </h1>
                 </div>
 
                 {/* Timeline Container with SVG */}
@@ -570,8 +535,9 @@ async function generateMilestoneRoadmapImage(
                     style={{
                         position: 'relative',
                         width: '100%',
-                        height: `${850 * scaleY}px`,
+                        flex: 1,
                         display: 'flex',
+                        minHeight: '900px',
                     }}
                 >
                     {/* SVG Path Container */}
@@ -583,7 +549,7 @@ async function generateMilestoneRoadmapImage(
                             width: '100%',
                             height: '100%',
                         }}
-                        viewBox={`0 0 ${1100 * scaleX} ${850 * scaleY}`}
+                        viewBox={`0 0 ${1100 * scaleX} ${availableHeight}`}
                     >
                         {/* Dynamic Path Generation for Steps */}
                         {steps.map((step, index) => {
