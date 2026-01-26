@@ -595,7 +595,6 @@ async function generateMilestoneRoadmapImage(
                                             height: '4px',
                                             backgroundColor: stepColor,
                                             marginRight: '10px',
-                                            display: 'flex',
                                         }}
                                     />
 
@@ -625,6 +624,7 @@ async function generateMilestoneRoadmapImage(
                                                 fontWeight: 'bold',
                                                 color: '#ffffff',
                                                 opacity: 0.9,
+                                                display: 'flex',
                                             }}
                                         >
                                             STEP {step.number}
@@ -661,32 +661,31 @@ async function generateMilestoneRoadmapImage(
                                 </div>
 
                                 {/* Description below the step box */}
-                                {descriptionLines.length > 0 && (
-                                    <div
-                                        style={{
-                                            marginTop: '12px',
-                                            marginLeft: `${60 + 10}px`, // Align with step box
-                                            width: `${stepWidth}px`,
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                        }}
-                                    >
-                                        {descriptionLines.map((line, lineIndex) => (
-                                            <div
-                                                key={lineIndex}
-                                                style={{
-                                                    fontSize: 16,
-                                                    color: colors.charcoal,
-                                                    textAlign: 'left',
-                                                    lineHeight: '1.4',
-                                                    marginBottom: lineIndex < descriptionLines.length - 1 ? '4px' : '0',
-                                                }}
-                                            >
-                                                {line}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                <div
+                                    style={{
+                                        marginTop: '12px',
+                                        marginLeft: `${60 + 10}px`, // Align with step box
+                                        width: `${stepWidth}px`,
+                                        display: descriptionLines.length > 0 ? 'flex' : 'none',
+                                        flexDirection: 'column',
+                                    }}
+                                >
+                                    {descriptionLines.map((line, lineIndex) => (
+                                        <div
+                                            key={lineIndex}
+                                            style={{
+                                                fontSize: 16,
+                                                color: colors.charcoal,
+                                                textAlign: 'left',
+                                                lineHeight: '1.4',
+                                                marginBottom: lineIndex < descriptionLines.length - 1 ? '4px' : '0',
+                                                display: 'flex',
+                                            }}
+                                        >
+                                            {line}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         );
                     })}
