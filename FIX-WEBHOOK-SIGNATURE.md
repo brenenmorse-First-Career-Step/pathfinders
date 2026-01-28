@@ -54,7 +54,7 @@ Make sure your Stripe webhook is pointing to the correct URL:
 
 **For Production:**
 ```
-https://firstcareerstepslive.vercel.app/api/webhooks/stripe
+https://www.firstcareersteps.com/api/webhooks/stripe
 ```
 
 **For Local Testing (using Stripe CLI):**

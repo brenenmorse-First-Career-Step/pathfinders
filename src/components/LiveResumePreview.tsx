@@ -171,7 +171,6 @@ export function LiveResumePreview({
                         </h2>
                         <div className="flex justify-between items-start">
                             <div>
-                                <h3 className="text-sm font-bold text-gray-900">High School Diploma</h3>
                                 <p className="text-xs text-gray-700">{highSchool}</p>
                             </div>
                             {graduationYear && (

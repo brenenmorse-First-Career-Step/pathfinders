@@ -135,7 +135,7 @@ export function ResumePreview({
                             Education
                         </h2>
                         <div>
-                            <h3 className="text-sm font-bold text-gray-900">{highSchool}</h3>
+                            <p className="text-sm text-gray-900">{highSchool}</p>
                             {graduationYear && (
                                 <p className="text-sm text-gray-600">Graduated: {graduationYear}</p>
                             )}
