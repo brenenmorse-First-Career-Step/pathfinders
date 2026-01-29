@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createBrowserClient } from '@/lib/supabase';
 import Link from 'next/link';
@@ -23,10 +24,12 @@ interface Resume {
 const FETCH_DEBOUNCE_MS = 1500;
 
 export default function ResumesPage() {
+    const searchParams = useSearchParams();
     const { user } = useAuth();
     const { profile } = useProfile();
     const [resumes, setResumes] = useState<Resume[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showCreatedBanner, setShowCreatedBanner] = useState(false);
     const [showLinkedInModal, setShowLinkedInModal] = useState(false);
     const [linkedInContent, setLinkedInContent] = useState<LinkedInContent | null>(null);
     const [generatingLinkedIn, setGeneratingLinkedIn] = useState(false);
@@ -66,6 +69,15 @@ export default function ResumesPage() {
             setLoading(false);
         }
     }, [user?.id]);
+
+    // Show "Resume created!" banner when coming from subscription generate (created=1)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (searchParams.get('created') === '1') {
+            setShowCreatedBanner(true);
+            window.history.replaceState({}, '', '/dashboard/resumes');
+        }
+    }, [searchParams]);
 
     // Fetch once per user id; optional delayed refresh when coming from checkout
     useEffect(() => {
@@ -193,6 +205,22 @@ export default function ResumesPage() {
     return (
         <div className="p-8">
             <div className="max-w-6xl mx-auto">
+                {/* Success banner when resume just created (subscription flow) */}
+                {showCreatedBanner && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center justify-between">
+                        <p className="text-green-800 font-medium">Resume created! It&apos;s ready below.</p>
+                        <button
+                            type="button"
+                            onClick={() => setShowCreatedBanner(false)}
+                            className="text-green-600 hover:text-green-800 p-1"
+                            aria-label="Dismiss"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>

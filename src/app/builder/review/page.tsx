@@ -69,7 +69,8 @@ export default function ReviewPage() {
           if (typeof sessionStorage !== 'undefined') {
             sessionStorage.setItem('resume_created', 'true');
           }
-          router.push('/checkout/success?generated=1');
+          // Subscribed users go straight to dashboard – no checkout/success, no "Processing Payment"
+          router.push('/dashboard/resumes?created=1');
           return;
         }
 
