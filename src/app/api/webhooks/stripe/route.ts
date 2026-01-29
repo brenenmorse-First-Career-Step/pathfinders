@@ -154,11 +154,11 @@ export async function POST(request: NextRequest) {
                     subscriptionId: session.subscription,
                 });
 
-                // Extract metadata
-                const userId = session.metadata?.userId;
+                // Extract userId: metadata first, then client_reference_id (fallback)
+                const userId = session.metadata?.userId || session.client_reference_id;
 
                 if (!userId) {
-                    paymentLogger.error('Missing userId in session metadata', {
+                    paymentLogger.error('Missing userId in session metadata and client_reference_id', {
                         sessionId: session.id,
                     });
                     break;

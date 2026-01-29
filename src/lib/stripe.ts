@@ -176,6 +176,7 @@ export async function createSubscriptionCheckoutSession(userId: string, customer
         const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
             customer: customerId,
+            client_reference_id: userId,
             payment_method_types: ['card'],
             line_items: [
                 {
