@@ -213,7 +213,7 @@ export default function ReviewPage() {
                     {isLoading ? 'Checking...' : 'Create my resume'}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
-                    You'll go to payment ($9/year) to unlock this resume • Unlimited resumes for one year
+                    You&apos;ll go to payment ($9/year) to unlock this resume • Unlimited resumes for one year
                   </p>
                 </>
               )}
