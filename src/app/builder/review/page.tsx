@@ -27,11 +27,6 @@ export default function ReviewPage() {
       const response = await fetch('/api/check-subscription');
       const data = await response.json();
 
-      console.log('Subscription check response:', data);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/200fa76e-626f-4194-ae18-4a5b0d59588e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'review/page.tsx:checkResponse',message:'check-subscription response',data:{hasSubscription:data.hasSubscription,userId:data.debug?.userId,allSubs:data.debug?.allSubscriptions,allStatuses:data.debug?.allSubscriptionStatuses},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D,E'})}).catch(()=>{});
-      // #endregion
-
       if (data.hasSubscription) {
         setHasActiveSubscription(true);
       } else {

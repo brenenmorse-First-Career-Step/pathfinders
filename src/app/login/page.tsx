@@ -72,11 +72,10 @@ function LoginContent() {
 
       // Get redirect destination from query params or default to dashboard
       const redirectTo = searchParams.get('redirect') || '/dashboard';
-      
-      // Small delay to ensure session is established before redirect
-      setTimeout(() => {
-        router.replace(redirectTo);
-      }, 100);
+
+      // IMPORTANT: use a hard navigation so middleware definitely sees fresh auth cookies
+      // (prevents "login loop" on live deployments).
+      window.location.assign(redirectTo);
     } catch (error) {
       logger.error('Login Form', error as Error, { email: formData.email });
       setServerError('An unexpected error occurred. Please try again.');

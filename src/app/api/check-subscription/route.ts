@@ -36,20 +36,12 @@ export async function GET(_request: NextRequest) {
             );
         }
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/200fa76e-626f-4194-ae18-4a5b0d59588e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'check-subscription/route.ts:entry',message:'check-subscription called',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B,E'})}).catch(()=>{});
-        // #endregion
-
         // Use admin client so RLS does not block subscription read (reliable for review page)
         const adminSupabase = createAdminClient();
         const { data: allSubscriptions, error: allError } = await adminSupabase
             .from('subscriptions')
             .select('*')
             .eq('user_id', user.id);
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/200fa76e-626f-4194-ae18-4a5b0d59588e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'check-subscription/route.ts:allSubs',message:'allSubscriptions result',data:{userId:user.id,count:allSubscriptions?.length??0,statuses:allSubscriptions?.map(s=>s.status)??[],allError:allError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C,E'})}).catch(()=>{});
-        // #endregion
 
         if (allError) {
             console.error('Error fetching subscriptions:', allError);
@@ -73,10 +65,6 @@ export async function GET(_request: NextRequest) {
             .order('current_period_end', { ascending: false })
             .limit(1)
             .maybeSingle();
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/200fa76e-626f-4194-ae18-4a5b0d59588e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'check-subscription/route.ts:activeQuery',message:'active subscription query',data:{userId:user.id,found:!!activeSubscription,status:activeSubscription?.status,activeError:activeError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,E'})}).catch(()=>{});
-        // #endregion
 
         if (activeError) {
             console.error('Error fetching active subscription:', activeError);
@@ -108,9 +96,6 @@ export async function GET(_request: NextRequest) {
         }
 
         // No active subscription found
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/200fa76e-626f-4194-ae18-4a5b0d59588e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'check-subscription/route.ts:noActive',message:'returning hasSubscription false',data:{userId:user.id,allCount:allSubscriptions?.length??0,allStatuses:allSubscriptions?.map(s=>s.status)??[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B,E'})}).catch(()=>{});
-        // #endregion
         return NextResponse.json({
             hasSubscription: false,
             debug: {

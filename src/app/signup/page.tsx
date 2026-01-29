@@ -101,8 +101,8 @@ export default function SignUpPage() {
         email: formData.email,
       });
 
-      // Redirect to builder
-      router.push('/builder/step-1');
+      // Redirect to builder (hard navigation so middleware sees auth cookies immediately)
+      window.location.assign('/builder/step-1');
     } catch (error) {
       logger.error('Sign Up Form', error as Error, { email: formData.email });
       setServerError('An unexpected error occurred. Please try again.');

@@ -180,7 +180,6 @@ export async function POST(request: NextRequest) {
                             const stripe = (await import('@/lib/stripe')).getStripe();
                             const subscriptionObj = await stripe.subscriptions.retrieve(session.subscription as string);
                             
-                            // Create subscription record
                             const subData = subscriptionObj as unknown as Stripe.Subscription & {
                                 current_period_start: number;
                                 current_period_end: number;
@@ -190,7 +189,29 @@ export async function POST(request: NextRequest) {
                             const customerId = typeof subData.customer === 'string' 
                                 ? subData.customer 
                                 : subData.customer.id;
-                            
+
+                            // Ensure user exists in public.users (FK for subscriptions/resumes) – new signups may only be in auth.users
+                            const customer = await stripe.customers.retrieve(customerId);
+                            if (!customer.deleted && 'email' in customer && customer.email) {
+                                const { error: userUpsertError } = await supabase
+                                    .from('users')
+                                    .upsert(
+                                        {
+                                            id: userId,
+                                            email: customer.email,
+                                            full_name: (customer as { name?: string }).name ?? null,
+                                        },
+                                        { onConflict: 'id' }
+                                    );
+                                if (userUpsertError) {
+                                    paymentLogger.error('Failed to ensure user in public.users', {
+                                        error: userUpsertError,
+                                        userId,
+                                    });
+                                }
+                            }
+
+                            // Create subscription record
                             const { error: subError } = await supabase
                                 .from('subscriptions')
                                 .upsert({
@@ -467,6 +488,26 @@ export async function POST(request: NextRequest) {
                             customerId: subscription.customer,
                         });
                         break;
+                    }
+
+                    // Ensure user exists in public.users (FK for subscriptions/resumes)
+                    if (!customer.deleted && 'email' in customer && customer.email) {
+                        const { error: userUpsertError } = await supabase
+                            .from('users')
+                            .upsert(
+                                {
+                                    id: userId,
+                                    email: customer.email,
+                                    full_name: (customer as { name?: string }).name ?? null,
+                                },
+                                { onConflict: 'id' }
+                            );
+                        if (userUpsertError) {
+                            paymentLogger.error('Failed to ensure user in public.users (subscription event)', {
+                                error: userUpsertError,
+                                userId,
+                            });
+                        }
                     }
 
                     // Upsert subscription record
