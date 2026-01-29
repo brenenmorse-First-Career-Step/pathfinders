@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createSubscriptionCheckoutSession, hasActiveSubscription } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
     try {
         const cookieStore = await cookies();
 

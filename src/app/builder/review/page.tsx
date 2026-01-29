@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/layout";
@@ -16,11 +16,7 @@ export default function ReviewPage() {
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkSubscriptionStatus();
-  }, [user]);
-
-  const checkSubscriptionStatus = async () => {
+  const checkSubscriptionStatus = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -49,7 +45,11 @@ export default function ReviewPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    checkSubscriptionStatus();
+  }, [checkSubscriptionStatus]);
 
   const handleCompleteAndPay = () => {
     router.push('/checkout');

@@ -77,10 +77,10 @@ export async function POST(request: NextRequest) {
                     }
 
                     // Legacy one-time payment handling (for backward compatibility)
-                    // Fetch user's profile data
-                    const { data: profile, error: profileError } = await supabase
+                    // Verify profile exists (but don't need to use the data)
+                    const { error: profileError } = await supabase
                         .from('profile')
-                        .select('*')
+                        .select('id')
                         .eq('user_id', userId)
                         .single();
 
@@ -249,18 +249,19 @@ export async function POST(request: NextRequest) {
                     // Upsert subscription record
                     // Fetch full subscription object to get all properties
                     const fullSubscription = await stripe.subscriptions.retrieve(subscription.id);
-                    const subData = fullSubscription as any; // Type assertion for Stripe subscription properties
                     
                     const { error: subError } = await supabase
                         .from('subscriptions')
                         .upsert({
                             user_id: userId,
-                            stripe_subscription_id: subData.id,
-                            stripe_customer_id: subData.customer as string,
-                            status: subData.status,
-                            current_period_start: new Date(subData.current_period_start * 1000).toISOString(),
-                            current_period_end: new Date(subData.current_period_end * 1000).toISOString(),
-                            cancel_at_period_end: subData.cancel_at_period_end || false,
+                            stripe_subscription_id: fullSubscription.id,
+                            stripe_customer_id: typeof fullSubscription.customer === 'string' 
+                                ? fullSubscription.customer 
+                                : fullSubscription.customer.id,
+                            status: fullSubscription.status,
+                            current_period_start: new Date(fullSubscription.current_period_start * 1000).toISOString(),
+                            current_period_end: new Date(fullSubscription.current_period_end * 1000).toISOString(),
+                            cancel_at_period_end: fullSubscription.cancel_at_period_end || false,
                             updated_at: new Date().toISOString(),
                         }, {
                             onConflict: 'stripe_subscription_id',
@@ -404,18 +405,18 @@ export async function POST(request: NextRequest) {
 
             case 'invoice.payment_succeeded': {
                 const invoice = event.data.object as Stripe.Invoice;
-                const invoiceData = invoice as any; // Type assertion for Stripe invoice properties
                 
                 // Invoice.subscription can be a string ID or a Subscription object
-                const subscriptionId = invoiceData.subscription 
-                    ? (typeof invoiceData.subscription === 'string' 
-                        ? invoiceData.subscription 
-                        : (invoiceData.subscription as any)?.id)
+                // Use type guards to safely access properties
+                const subscriptionId = invoice.subscription 
+                    ? (typeof invoice.subscription === 'string' 
+                        ? invoice.subscription 
+                        : (invoice.subscription as Stripe.Subscription)?.id)
                     : null;
-                const customerId = invoiceData.customer
-                    ? (typeof invoiceData.customer === 'string' 
-                        ? invoiceData.customer 
-                        : (invoiceData.customer as any)?.id)
+                const customerId = invoice.customer
+                    ? (typeof invoice.customer === 'string' 
+                        ? invoice.customer 
+                        : (invoice.customer as Stripe.Customer)?.id)
                     : null;
 
                 paymentLogger.info('Invoice payment succeeded', {
