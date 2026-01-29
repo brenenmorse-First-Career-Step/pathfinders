@@ -38,8 +38,15 @@ export default function CheckoutPage() {
                 throw new Error(data.error || 'Failed to create checkout session');
             }
 
+            // If user has active subscription, resume was created directly
+            if (data.success) {
+                // Redirect to success page
+                router.push('/checkout/success');
+                return;
+            }
+
             if (data.url) {
-                // Redirect to Stripe Checkout
+                // Redirect to Stripe Checkout for subscription
                 window.location.href = data.url;
             } else {
                 throw new Error('No checkout URL returned');

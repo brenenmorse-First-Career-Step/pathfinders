@@ -129,25 +129,47 @@ export function handleStripeError(operation: string, error: any, context?: any) 
 
 // Stripe configuration constants
 export const STRIPE_CONFIG = {
-    PRODUCT_NAME: 'Resume PDF Download',
+    PRODUCT_NAME: 'Resume Builder Annual Subscription',
     AMOUNT: 900, // $9.00 in cents
     CURRENCY: 'usd',
     SUCCESS_URL: '/checkout/success',
     CANCEL_URL: '/checkout/cancel',
+    INTERVAL: 'year' as const, // Annual subscription
 };
 
-// Helper function to create checkout session
-export async function createCheckoutSession(userId: string, resumeId: string) {
+// Helper function to create subscription checkout session
+export async function createSubscriptionCheckoutSession(userId: string, customerEmail?: string) {
     try {
         const stripe = getStripe();
 
-        stripeLogger.info('Create Checkout Session', 'Creating session', {
+        stripeLogger.info('Create Subscription Checkout Session', 'Creating subscription session', {
             userId,
-            resumeId,
         });
 
+        // Create or retrieve customer
+        let customerId: string | undefined;
+        if (customerEmail) {
+            const customers = await stripe.customers.list({
+                email: customerEmail,
+                limit: 1,
+            });
+            
+            if (customers.data.length > 0) {
+                customerId = customers.data[0].id;
+            } else {
+                const customer = await stripe.customers.create({
+                    email: customerEmail,
+                    metadata: {
+                        userId,
+                    },
+                });
+                customerId = customer.id;
+            }
+        }
+
         const session = await stripe.checkout.sessions.create({
-            mode: 'payment',
+            mode: 'subscription',
+            customer: customerId,
             payment_method_types: ['card'],
             line_items: [
                 {
@@ -155,31 +177,43 @@ export async function createCheckoutSession(userId: string, resumeId: string) {
                         currency: STRIPE_CONFIG.CURRENCY,
                         product_data: {
                             name: STRIPE_CONFIG.PRODUCT_NAME,
-                            description: 'Download your professional resume as a PDF',
+                            description: 'Unlimited resume creation for one year',
                         },
                         unit_amount: STRIPE_CONFIG.AMOUNT,
+                        recurring: {
+                            interval: STRIPE_CONFIG.INTERVAL,
+                        },
                     },
                     quantity: 1,
                 },
             ],
             metadata: {
                 userId,
-                resumeId,
+            },
+            subscription_data: {
+                metadata: {
+                    userId,
+                },
             },
             success_url: `${process.env.NEXT_PUBLIC_APP_URL}${STRIPE_CONFIG.SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${STRIPE_CONFIG.CANCEL_URL}`,
         });
 
-        stripeLogger.info('Create Checkout Session', 'Session created successfully', {
+        stripeLogger.info('Create Subscription Checkout Session', 'Session created successfully', {
             sessionId: session.id,
             userId,
-            resumeId,
+            customerId,
         });
 
         return { session };
     } catch (error) {
-        return handleStripeError('Create Checkout Session', error, { userId, resumeId });
+        return handleStripeError('Create Subscription Checkout Session', error, { userId });
     }
+}
+
+// Legacy function for backward compatibility (now creates subscription)
+export async function createCheckoutSession(userId: string, resumeId: string) {
+    return createSubscriptionCheckoutSession(userId);
 }
 
 // Helper function to verify webhook signature
@@ -206,5 +240,30 @@ export function verifyWebhookSignature(payload: string | Buffer, signature: stri
             errorType: error.type,
         });
         return null;
+    }
+}
+
+// Helper function to check if user has active subscription
+export async function hasActiveSubscription(userId: string, supabaseClient: any): Promise<boolean> {
+    try {
+        const { data: subscription, error } = await supabaseClient
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .single();
+
+        if (error || !subscription) {
+            return false;
+        }
+
+        // Check if subscription is still within current period
+        const now = new Date();
+        const periodEnd = new Date(subscription.current_period_end);
+        
+        return periodEnd > now && !subscription.cancel_at_period_end;
+    } catch (error) {
+        stripeLogger.error('Check Active Subscription', error, { userId });
+        return false;
     }
 }

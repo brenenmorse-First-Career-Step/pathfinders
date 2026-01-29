@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
                 paymentLogger.info('Checkout session completed', {
                     sessionId: session.id,
                     customerId: session.customer,
-                    amount: session.amount_total,
+                    mode: session.mode,
+                    subscriptionId: session.subscription,
                 });
 
                 // Extract metadata
@@ -65,6 +66,17 @@ export async function POST(request: NextRequest) {
                 try {
                     const supabase = createAdminClient();
 
+                    // If this is a subscription checkout, the subscription will be handled by customer.subscription.created
+                    if (session.mode === 'subscription' && session.subscription) {
+                        paymentLogger.info('Subscription checkout completed, waiting for subscription.created event', {
+                            sessionId: session.id,
+                            subscriptionId: session.subscription,
+                            userId,
+                        });
+                        break;
+                    }
+
+                    // Legacy one-time payment handling (for backward compatibility)
                     // Fetch user's profile data
                     const { data: profile, error: profileError } = await supabase
                         .from('profile')
@@ -193,6 +205,231 @@ export async function POST(request: NextRequest) {
                         error: error as Error,
                         userId,
                         sessionId: session.id,
+                    });
+                }
+
+                break;
+            }
+
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated': {
+                const subscription = event.data.object as Stripe.Subscription;
+
+                paymentLogger.info('Subscription event', {
+                    eventType: event.type,
+                    subscriptionId: subscription.id,
+                    customerId: subscription.customer,
+                    status: subscription.status,
+                });
+
+                try {
+                    const supabase = createAdminClient();
+
+                    // Get customer to find userId
+                    const stripe = (await import('@/lib/stripe')).getStripe();
+                    const customer = await stripe.customers.retrieve(subscription.customer as string);
+
+                    if (customer.deleted || !('metadata' in customer)) {
+                        paymentLogger.error('Customer not found or deleted', {
+                            customerId: subscription.customer,
+                        });
+                        break;
+                    }
+
+                    const userId = customer.metadata?.userId || subscription.metadata?.userId;
+
+                    if (!userId) {
+                        paymentLogger.error('Missing userId in customer or subscription metadata', {
+                            subscriptionId: subscription.id,
+                            customerId: subscription.customer,
+                        });
+                        break;
+                    }
+
+                    // Upsert subscription record
+                    // Fetch full subscription object to get all properties
+                    const fullSubscription = await stripe.subscriptions.retrieve(subscription.id);
+                    const subData = fullSubscription as any; // Type assertion for Stripe subscription properties
+                    
+                    const { error: subError } = await supabase
+                        .from('subscriptions')
+                        .upsert({
+                            user_id: userId,
+                            stripe_subscription_id: subData.id,
+                            stripe_customer_id: subData.customer as string,
+                            status: subData.status,
+                            current_period_start: new Date(subData.current_period_start * 1000).toISOString(),
+                            current_period_end: new Date(subData.current_period_end * 1000).toISOString(),
+                            cancel_at_period_end: subData.cancel_at_period_end || false,
+                            updated_at: new Date().toISOString(),
+                        }, {
+                            onConflict: 'stripe_subscription_id',
+                        });
+
+                    if (subError) {
+                        paymentLogger.error('Failed to upsert subscription', {
+                            error: subError,
+                            userId,
+                            subscriptionId: subscription.id,
+                        });
+                    } else {
+                        paymentLogger.info('Subscription record updated successfully', {
+                            userId,
+                            subscriptionId: subscription.id,
+                            status: subscription.status,
+                        });
+
+                        // If subscription is newly created and active, create first resume
+                        if (event.type === 'customer.subscription.created' && subscription.status === 'active') {
+                            // Fetch user's basic info
+                            const { data: user } = await supabase
+                                .from('users')
+                                .select('full_name, email')
+                                .eq('id', userId)
+                                .single();
+
+                            // Generate unique shareable link
+                            const shareableLink = crypto.randomUUID();
+
+                            // Calculate next version number
+                            const { data: existingResumes } = await supabase
+                                .from('resumes')
+                                .select('version')
+                                .eq('user_id', userId)
+                                .order('version', { ascending: false })
+                                .limit(1);
+
+                            const nextVersion = existingResumes && existingResumes.length > 0
+                                ? (existingResumes[0].version || 0) + 1
+                                : 1;
+
+                            // Create resume record
+                            const { data: resume, error: resumeError } = await supabase
+                                .from('resumes')
+                                .insert({
+                                    user_id: userId,
+                                    title: `${user?.full_name || 'My'} Resume`,
+                                    status: 'paid',
+                                    shareable_link: shareableLink,
+                                    stripe_session_id: null,
+                                    version: nextVersion,
+                                    linkedin_content: null,
+                                    pdf_url: null,
+                                })
+                                .select()
+                                .single();
+
+                            if (resumeError) {
+                                paymentLogger.error('Failed to create resume for new subscription', {
+                                    error: resumeError,
+                                    userId,
+                                    subscriptionId: subscription.id,
+                                });
+                            } else {
+                                paymentLogger.info('Resume created for new subscription', {
+                                    userId,
+                                    resumeId: resume.id,
+                                    subscriptionId: subscription.id,
+                                });
+
+                                // Trigger PDF generation
+                                try {
+                                    const { generateAndUploadResumePDF } = await import('@/lib/pdf/generator');
+                                    const { pdfUrl } = await generateAndUploadResumePDF(userId);
+                                    
+                                    if (pdfUrl) {
+                                        await supabase
+                                            .from('resumes')
+                                            .update({ pdf_url: pdfUrl })
+                                            .eq('id', resume.id);
+                                    }
+                                } catch (pdfGenError) {
+                                    paymentLogger.error('PDF generation error for subscription resume', {
+                                        error: pdfGenError,
+                                        resumeId: resume.id,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    paymentLogger.error('Error processing subscription', {
+                        error: error as Error,
+                        subscriptionId: subscription.id,
+                    });
+                }
+
+                break;
+            }
+
+            case 'customer.subscription.deleted': {
+                const subscription = event.data.object as Stripe.Subscription;
+
+                paymentLogger.info('Subscription deleted', {
+                    subscriptionId: subscription.id,
+                    customerId: subscription.customer,
+                });
+
+                try {
+                    const supabase = createAdminClient();
+
+                    // Update subscription status to canceled
+                    const { error: updateError } = await supabase
+                        .from('subscriptions')
+                        .update({
+                            status: 'canceled',
+                            updated_at: new Date().toISOString(),
+                        })
+                        .eq('stripe_subscription_id', subscription.id);
+
+                    if (updateError) {
+                        paymentLogger.error('Failed to update subscription status', {
+                            error: updateError,
+                            subscriptionId: subscription.id,
+                        });
+                    } else {
+                        paymentLogger.info('Subscription marked as canceled', {
+                            subscriptionId: subscription.id,
+                        });
+                    }
+                } catch (error) {
+                    paymentLogger.error('Error processing subscription deletion', {
+                        error: error as Error,
+                        subscriptionId: subscription.id,
+                    });
+                }
+
+                break;
+            }
+
+            case 'invoice.payment_succeeded': {
+                const invoice = event.data.object as Stripe.Invoice;
+                const invoiceData = invoice as any; // Type assertion for Stripe invoice properties
+                
+                // Invoice.subscription can be a string ID or a Subscription object
+                const subscriptionId = invoiceData.subscription 
+                    ? (typeof invoiceData.subscription === 'string' 
+                        ? invoiceData.subscription 
+                        : (invoiceData.subscription as any)?.id)
+                    : null;
+                const customerId = invoiceData.customer
+                    ? (typeof invoiceData.customer === 'string' 
+                        ? invoiceData.customer 
+                        : (invoiceData.customer as any)?.id)
+                    : null;
+
+                paymentLogger.info('Invoice payment succeeded', {
+                    invoiceId: invoice.id,
+                    subscriptionId: subscriptionId,
+                    customerId: customerId,
+                });
+
+                // Subscription renewals are handled automatically by Stripe
+                // We just log this for tracking purposes
+                if (subscriptionId) {
+                    paymentLogger.info('Subscription renewal payment succeeded', {
+                        invoiceId: invoice.id,
+                        subscriptionId: subscriptionId,
                     });
                 }
 

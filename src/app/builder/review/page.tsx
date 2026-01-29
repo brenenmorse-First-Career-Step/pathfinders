@@ -1,17 +1,55 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/layout";
 import { Button } from "@/components/ui";
 import { useProfile } from "@/context/ProfileContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
+import { createBrowserClient } from "@/lib/supabase";
 
 export default function ReviewPage() {
   const router = useRouter();
   const { profile, setCurrentStep } = useProfile();
   const { user } = useAuth();
+  const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkSubscriptionStatus();
+  }, [user]);
+
+  const checkSubscriptionStatus = async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const supabase = createBrowserClient();
+      const { data: subscription, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (error || !subscription) {
+        setHasActiveSubscription(false);
+      } else {
+        // Check if subscription is still within current period
+        const now = new Date();
+        const periodEnd = new Date(subscription.current_period_end);
+        setHasActiveSubscription(periodEnd > now && !subscription.cancel_at_period_end);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setHasActiveSubscription(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCompleteAndPay = () => {
     router.push('/checkout');
@@ -50,7 +88,10 @@ export default function ReviewPage() {
             Review Your Resume
           </h1>
           <p className="text-gray-600">
-            Everything looks good? Complete your payment to download
+            {hasActiveSubscription 
+              ? "Everything looks good? Create your resume now (included in your subscription)"
+              : "Everything looks good? Subscribe for unlimited resume creation for a year"
+            }
           </p>
         </div>
 
@@ -110,17 +151,41 @@ export default function ReviewPage() {
 
             {/* Action Buttons */}
             <div className="pt-4">
-              <Button
-                onClick={handleCompleteAndPay}
-                size="lg"
-                fullWidth
-                className="bg-step-green hover:bg-step-green/90"
-              >
-                Complete & Pay $9
-              </Button>
-              <p className="text-xs text-center text-gray-500 mt-2">
-                Secure payment via Stripe • LinkedIn content available after payment
-              </p>
+              {hasActiveSubscription ? (
+                <>
+                  <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-green-800 font-medium">
+                      ✅ You have an active subscription! Create unlimited resumes for free.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleCompleteAndPay}
+                    size="lg"
+                    fullWidth
+                    className="bg-step-green hover:bg-step-green/90"
+                  >
+                    Create Resume (Free)
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 mt-2">
+                    Your subscription is active • Resume will be created immediately
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleCompleteAndPay}
+                    size="lg"
+                    fullWidth
+                    className="bg-step-green hover:bg-step-green/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Checking...' : 'Subscribe for $9/year'}
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 mt-2">
+                    Annual subscription • Unlimited resumes for one year • Secure payment via Stripe
+                  </p>
+                </>
+              )}
             </div>
           </div>
 

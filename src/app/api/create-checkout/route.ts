@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { createCheckoutSession } from '@/lib/stripe';
+import { createSubscriptionCheckoutSession, hasActiveSubscription } from '@/lib/stripe';
+import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
     try {
@@ -59,8 +60,69 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create Stripe checkout session
-        const result = await createCheckoutSession(user.id, 'new-resume');
+        // Check if user has an active subscription
+        const hasSubscription = await hasActiveSubscription(user.id, supabase);
+
+        if (hasSubscription) {
+            // User has active subscription - create resume directly without payment
+            const adminSupabase = createAdminClient();
+            
+            // Fetch user's basic info
+            const { data: userData } = await adminSupabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', user.id)
+                .single();
+
+            // Generate unique shareable link
+            const shareableLink = crypto.randomUUID();
+
+            // Calculate next version number
+            const { data: existingResumes } = await adminSupabase
+                .from('resumes')
+                .select('version')
+                .eq('user_id', user.id)
+                .order('version', { ascending: false })
+                .limit(1);
+
+            const nextVersion = existingResumes && existingResumes.length > 0
+                ? (existingResumes[0].version || 0) + 1
+                : 1;
+
+            // Create resume record with status 'paid' (subscription active)
+            const { data: resume, error: resumeError } = await adminSupabase
+                .from('resumes')
+                .insert({
+                    user_id: user.id,
+                    title: `${userData?.full_name || 'My'} Resume`,
+                    status: 'paid',
+                    shareable_link: shareableLink,
+                    stripe_session_id: null, // No session for subscription-based creation
+                    version: nextVersion,
+                    linkedin_content: null,
+                    pdf_url: null,
+                })
+                .select()
+                .single();
+
+            if (resumeError) {
+                console.error('Failed to create resume:', resumeError);
+                return NextResponse.json(
+                    { error: 'Failed to create resume' },
+                    { status: 500 }
+                );
+            }
+
+            // Return success - resume created with active subscription
+            return NextResponse.json({
+                success: true,
+                resumeId: resume.id,
+                message: 'Resume created successfully with active subscription',
+            });
+        }
+
+        // No active subscription - create subscription checkout session
+        const result = await createSubscriptionCheckoutSession(user.id, user.email);
 
         if ('error' in result) {
             return NextResponse.json(
