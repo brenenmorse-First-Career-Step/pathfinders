@@ -7,7 +7,6 @@ import { Header } from "@/components/layout";
 import { Button } from "@/components/ui";
 import { useProfile } from "@/context/ProfileContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
-import { createBrowserClient } from "@/lib/supabase";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -23,41 +22,21 @@ export default function ReviewPage() {
     }
 
     try {
-      const supabase = createBrowserClient();
-      // Use maybeSingle() instead of single() to avoid error when no subscription exists
-      const { data: subscription, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
+      // Use server-side API endpoint for more reliable subscription check
+      const response = await fetch('/api/check-subscription');
+      const data = await response.json();
 
-      if (error) {
-        console.error('Error checking subscription:', error);
+      console.log('Subscription check response:', data);
+
+      if (data.hasSubscription) {
+        setHasActiveSubscription(true);
+      } else {
         setHasActiveSubscription(false);
-        return;
+        // Log debug info if available
+        if (data.debug) {
+          console.log('Subscription debug info:', data.debug);
+        }
       }
-
-      if (!subscription) {
-        setHasActiveSubscription(false);
-        return;
-      }
-
-      // Check if subscription is still within current period
-      const now = new Date();
-      const periodEnd = new Date(subscription.current_period_end);
-      const isActive = periodEnd > now && !subscription.cancel_at_period_end;
-      
-      console.log('Subscription check:', {
-        userId: user.id,
-        subscriptionId: subscription.id,
-        status: subscription.status,
-        periodEnd: subscription.current_period_end,
-        now: now.toISOString(),
-        isActive,
-      });
-      
-      setHasActiveSubscription(isActive);
     } catch (error) {
       console.error('Error checking subscription:', error);
       setHasActiveSubscription(false);
