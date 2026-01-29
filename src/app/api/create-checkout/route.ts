@@ -108,16 +108,30 @@ export async function POST(_request: NextRequest) {
 
             if (resumeError) {
                 console.error('Failed to create resume:', resumeError);
+                console.error('Resume error details:', {
+                    code: resumeError.code,
+                    message: resumeError.message,
+                    details: resumeError.details,
+                    hint: resumeError.hint,
+                });
                 return NextResponse.json(
-                    { error: 'Failed to create resume' },
+                    { error: 'Failed to create resume', details: resumeError.message },
                     { status: 500 }
                 );
             }
+
+            console.log('Resume created successfully:', {
+                resumeId: resume.id,
+                userId: user.id,
+                version: nextVersion,
+                title: resume.title,
+            });
 
             // Return success - resume created with active subscription
             return NextResponse.json({
                 success: true,
                 resumeId: resume.id,
+                version: nextVersion,
                 message: 'Resume created successfully with active subscription',
             });
         }

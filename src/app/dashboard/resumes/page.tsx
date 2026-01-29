@@ -33,15 +33,18 @@ export default function ResumesPage() {
     useEffect(() => {
         fetchResumes();
         
-        // Check if coming from payment success page
+        // Check if coming from payment success page or resume creation
         const paymentCompleted = sessionStorage.getItem('payment_completed');
-        if (paymentCompleted === 'true') {
-            // Clear the flag
+        const resumeCreated = sessionStorage.getItem('resume_created');
+        
+        if (paymentCompleted === 'true' || resumeCreated === 'true') {
+            // Clear the flags
             sessionStorage.removeItem('payment_completed');
-            // Refresh resumes after a short delay to allow webhook to process
+            sessionStorage.removeItem('resume_created');
+            // Refresh resumes after a short delay to allow webhook/resume creation to process
             setTimeout(() => {
                 fetchResumes();
-            }, 3000);
+            }, 2000);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);

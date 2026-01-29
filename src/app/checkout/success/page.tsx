@@ -10,11 +10,13 @@ function SuccessContent() {
     const sessionId = searchParams.get('session_id');
 
     useEffect(() => {
-        // Give webhook a moment to process
+        // Give webhook a moment to process (or resume creation to complete)
         const timer = setTimeout(() => {
             setIsVerifying(false);
             // Set flag to trigger refresh on dashboard
             sessionStorage.setItem('payment_completed', 'true');
+            // Also set a flag for resume creation
+            sessionStorage.setItem('resume_created', 'true');
         }, 2000);
 
         return () => clearTimeout(timer);
