@@ -249,15 +249,17 @@ export function verifyWebhookSignature(payload: string | Buffer, signature: stri
     }
 }
 
-// Helper function to check if user has active subscription
+// Helper function to check if user has active subscription (active or trialing)
 export async function hasActiveSubscription(userId: string, supabaseClient: any): Promise<boolean> {
     try {
         const { data: subscription, error } = await supabaseClient
             .from('subscriptions')
             .select('*')
             .eq('user_id', userId)
-            .eq('status', 'active')
-            .single();
+            .in('status', ['active', 'trialing'])
+            .order('current_period_end', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
         if (error || !subscription) {
             return false;
