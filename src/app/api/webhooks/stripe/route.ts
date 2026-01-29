@@ -220,25 +220,54 @@ export async function POST(request: NextRequest) {
                                 });
                             }
                             
-                            // Only create resume if subscription is active
-                            if (subscriptionObj.status === 'active') {
-                                // Check if resume already exists (in case customer.subscription.created already created it)
+                            // Create first resume when subscription is active or trialing (new paid user)
+                            const statusOk = subscriptionObj.status === 'active' || subscriptionObj.status === 'trialing';
+                            if (statusOk) {
                                 const { data: existingResume } = await supabase
                                     .from('resumes')
                                     .select('id')
                                     .eq('user_id', userId)
                                     .order('created_at', { ascending: false })
                                     .limit(1);
-                                
-                                // Only create if no recent resume exists
+
                                 if (!existingResume || existingResume.length === 0) {
-                                    await createResumeForSubscription(supabase, userId, subscriptionObj.id);
+                                    const result = await createResumeForSubscription(supabase, userId, subscriptionObj.id);
+                                    if (!result.success) {
+                                        paymentLogger.error('createResumeForSubscription failed in checkout.session.completed', {
+                                            userId,
+                                            subscriptionId: subscriptionObj.id,
+                                            error: result.error,
+                                        });
+                                    }
                                 } else {
                                     paymentLogger.info('Resume already exists, skipping creation', {
                                         userId,
                                         resumeId: existingResume[0].id,
                                     });
                                 }
+                            } else {
+                                paymentLogger.info('Subscription status not active/trialing yet, will try fallback', {
+                                    userId,
+                                    status: subscriptionObj.status,
+                                });
+                            }
+
+                            // Fallback: if we still have no resume for this user (e.g. status was incomplete), create one
+                            const { data: resumeCheck } = await supabase
+                                .from('resumes')
+                                .select('id')
+                                .eq('user_id', userId)
+                                .limit(1);
+                            if (!resumeCheck || resumeCheck.length === 0) {
+                                paymentLogger.info('Fallback: creating first resume for user after subscription checkout', {
+                                    userId,
+                                    subscriptionId: session.subscription,
+                                });
+                                await createResumeForSubscription(
+                                    supabase,
+                                    userId,
+                                    typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? ''
+                                );
                             }
                         } catch (subError) {
                             paymentLogger.error('Error processing subscription checkout', {
@@ -246,7 +275,26 @@ export async function POST(request: NextRequest) {
                                 userId,
                                 sessionId: session.id,
                             });
-                            // Continue to let customer.subscription.created handle it
+                            // Fallback: try to create resume anyway so new paid user gets one
+                            try {
+                                const { data: resumeCheck } = await supabase
+                                    .from('resumes')
+                                    .select('id')
+                                    .eq('user_id', userId)
+                                    .limit(1);
+                                if (!resumeCheck || resumeCheck.length === 0) {
+                                    await createResumeForSubscription(
+                                        supabase,
+                                        userId,
+                                        typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? ''
+                                    );
+                                }
+                            } catch (fallbackErr) {
+                                paymentLogger.error('Fallback resume creation failed', {
+                                    error: fallbackErr,
+                                    userId,
+                                });
+                            }
                         }
                         break;
                     }
@@ -462,8 +510,8 @@ export async function POST(request: NextRequest) {
                             status: subscription.status,
                         });
 
-                        // If subscription is newly created and active, create first resume
-                        if (event.type === 'customer.subscription.created' && subscription.status === 'active') {
+                        // If subscription is newly created and active/trialing, create first resume
+                        if (event.type === 'customer.subscription.created' && (subscription.status === 'active' || subscription.status === 'trialing')) {
                             // Check if resume already exists (in case checkout.session.completed already created it)
                             const { data: existingResume } = await supabase
                                 .from('resumes')

@@ -36,10 +36,12 @@ export default function CheckoutPage() {
                 throw new Error(data.error || 'Failed to create checkout session');
             }
 
-            // If user has active subscription, resume was created directly
+            // If user has active subscription, resume was created directly – go to dashboard (no payment copy)
             if (data.success) {
-                // Redirect to success page
-                router.push('/checkout/success');
+                if (typeof sessionStorage !== 'undefined') {
+                    sessionStorage.setItem('resume_created', 'true');
+                }
+                router.push('/dashboard/resumes?created=1');
                 return;
             }
 

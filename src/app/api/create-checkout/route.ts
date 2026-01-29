@@ -61,8 +61,9 @@ export async function POST(_request: NextRequest) {
             );
         }
 
-        // Check if user has an active subscription
-        const hasSubscription = await hasActiveSubscription(user.id, supabase);
+        // Check if user has an active subscription (use admin client so RLS does not block)
+        const adminSupabaseForCheck = createAdminClient();
+        const hasSubscription = await hasActiveSubscription(user.id, adminSupabaseForCheck);
 
         if (hasSubscription) {
             // User has active subscription - create resume directly without payment

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { createAdminClient } from '@/lib/supabase';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_request: NextRequest) {
@@ -35,8 +36,9 @@ export async function GET(_request: NextRequest) {
             );
         }
 
-        // Check for subscription - try without status filter first to see if any exists
-        const { data: allSubscriptions, error: allError } = await supabase
+        // Use admin client so RLS does not block subscription read (reliable for review page)
+        const adminSupabase = createAdminClient();
+        const { data: allSubscriptions, error: allError } = await adminSupabase
             .from('subscriptions')
             .select('*')
             .eq('user_id', user.id);
@@ -54,8 +56,8 @@ export async function GET(_request: NextRequest) {
             });
         }
 
-        // Check for active subscription
-        const { data: activeSubscription, error: activeError } = await supabase
+        // Check for active subscription (admin client for reliable read)
+        const { data: activeSubscription, error: activeError } = await adminSupabase
             .from('subscriptions')
             .select('*')
             .eq('user_id', user.id)
