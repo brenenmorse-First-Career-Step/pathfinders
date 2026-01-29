@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createSubscriptionCheckoutSession, hasActiveSubscription } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function POST(_request: NextRequest) {
     try {
         const cookieStore = await cookies();

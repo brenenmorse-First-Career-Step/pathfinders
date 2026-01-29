@@ -247,21 +247,28 @@ export async function POST(request: NextRequest) {
                     }
 
                     // Upsert subscription record
-                    // Fetch full subscription object to get all properties
-                    const fullSubscription = await stripe.subscriptions.retrieve(subscription.id);
+                    // Use subscription object directly from event (it has all properties)
+                    // Type assertion needed because Stripe types may not expose all properties
+                    const subData = subscription as Stripe.Subscription & {
+                        current_period_start: number;
+                        current_period_end: number;
+                        cancel_at_period_end: boolean | null;
+                    };
+                    
+                    const customerId = typeof subData.customer === 'string' 
+                        ? subData.customer 
+                        : subData.customer.id;
                     
                     const { error: subError } = await supabase
                         .from('subscriptions')
                         .upsert({
                             user_id: userId,
-                            stripe_subscription_id: fullSubscription.id,
-                            stripe_customer_id: typeof fullSubscription.customer === 'string' 
-                                ? fullSubscription.customer 
-                                : fullSubscription.customer.id,
-                            status: fullSubscription.status,
-                            current_period_start: new Date(fullSubscription.current_period_start * 1000).toISOString(),
-                            current_period_end: new Date(fullSubscription.current_period_end * 1000).toISOString(),
-                            cancel_at_period_end: fullSubscription.cancel_at_period_end || false,
+                            stripe_subscription_id: subData.id,
+                            stripe_customer_id: customerId,
+                            status: subData.status,
+                            current_period_start: new Date(subData.current_period_start * 1000).toISOString(),
+                            current_period_end: new Date(subData.current_period_end * 1000).toISOString(),
+                            cancel_at_period_end: subData.cancel_at_period_end || false,
                             updated_at: new Date().toISOString(),
                         }, {
                             onConflict: 'stripe_subscription_id',
@@ -405,18 +412,23 @@ export async function POST(request: NextRequest) {
 
             case 'invoice.payment_succeeded': {
                 const invoice = event.data.object as Stripe.Invoice;
+                // Type assertion for invoice properties that may not be in type definition
+                const invoiceData = invoice as Stripe.Invoice & {
+                    subscription?: string | Stripe.Subscription | null;
+                    customer?: string | Stripe.Customer | null;
+                };
                 
                 // Invoice.subscription can be a string ID or a Subscription object
                 // Use type guards to safely access properties
-                const subscriptionId = invoice.subscription 
-                    ? (typeof invoice.subscription === 'string' 
-                        ? invoice.subscription 
-                        : (invoice.subscription as Stripe.Subscription)?.id)
+                const subscriptionId = invoiceData.subscription 
+                    ? (typeof invoiceData.subscription === 'string' 
+                        ? invoiceData.subscription 
+                        : (invoiceData.subscription as Stripe.Subscription)?.id)
                     : null;
-                const customerId = invoice.customer
-                    ? (typeof invoice.customer === 'string' 
-                        ? invoice.customer 
-                        : (invoice.customer as Stripe.Customer)?.id)
+                const customerId = invoiceData.customer
+                    ? (typeof invoiceData.customer === 'string' 
+                        ? invoiceData.customer 
+                        : (invoiceData.customer as Stripe.Customer)?.id)
                     : null;
 
                 paymentLogger.info('Invoice payment succeeded', {
