@@ -127,6 +127,29 @@ export async function POST(_request: NextRequest) {
                 title: resume.title,
             });
 
+            // Generate and upload PDF for subscription-created resume
+            try {
+                const { generateAndUploadResumePDF } = await import('@/lib/pdf/generator');
+                const { pdfUrl, error: pdfError } = await generateAndUploadResumePDF(user.id);
+
+                if (pdfError) {
+                    console.error('PDF generation failed for subscription resume:', pdfError);
+                } else if (pdfUrl) {
+                    const { error: updateError } = await adminSupabase
+                        .from('resumes')
+                        .update({ pdf_url: pdfUrl })
+                        .eq('id', resume.id);
+
+                    if (updateError) {
+                        console.error('Failed to update resume with PDF URL:', updateError);
+                    } else {
+                        console.log('PDF generated and uploaded for resume:', resume.id);
+                    }
+                }
+            } catch (pdfGenError) {
+                console.error('PDF generation error:', pdfGenError);
+            }
+
             // Return success - resume created with active subscription
             return NextResponse.json({
                 success: true,

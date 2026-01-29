@@ -14,6 +14,7 @@ export default function ReviewPage() {
   const { user } = useAuth();
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const checkSubscriptionStatus = useCallback(async () => {
     if (!user) {
@@ -49,7 +50,44 @@ export default function ReviewPage() {
     checkSubscriptionStatus();
   }, [checkSubscriptionStatus]);
 
-  const handleCompleteAndPay = () => {
+  const handleCompleteAndPay = async () => {
+    // Subscribed users: create resume via API and redirect to success (never show checkout)
+    if (hasActiveSubscription) {
+      setIsGenerating(true);
+      try {
+        const response = await fetch('/api/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create resume');
+        }
+
+        if (data.success) {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('resume_created', 'true');
+          }
+          router.push('/checkout/success');
+          return;
+        }
+
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error('Unexpected response');
+      } catch (err) {
+        console.error('Generate resume error:', err);
+        alert(err instanceof Error ? err.message : 'Failed to create resume. Please try again.');
+      } finally {
+        setIsGenerating(false);
+      }
+      return;
+    }
+
+    // Non-subscribed: go to checkout page (will create Stripe session)
     router.push('/checkout');
   };
 
@@ -152,12 +190,13 @@ export default function ReviewPage() {
               {hasActiveSubscription ? (
                 <>
                   <Button
-                    onClick={handleCompleteAndPay}
+                    onClick={() => handleCompleteAndPay()}
                     size="lg"
                     fullWidth
                     className="bg-step-green hover:bg-step-green/90"
+                    disabled={isGenerating}
                   >
-                    Generate Resume
+                    {isGenerating ? 'Generating resume...' : 'Generate Resume'}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
                     Subscribed to yearly plan • Generate unlimited resumes
@@ -166,7 +205,7 @@ export default function ReviewPage() {
               ) : (
                 <>
                   <Button
-                    onClick={handleCompleteAndPay}
+                    onClick={() => handleCompleteAndPay()}
                     size="lg"
                     fullWidth
                     className="bg-step-green hover:bg-step-green/90"
