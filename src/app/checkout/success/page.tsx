@@ -1,29 +1,38 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useLayoutEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 function SuccessContent() {
     const searchParams = useSearchParams();
-    const generated = searchParams.get('generated') === '1';
     const sessionId = searchParams.get('session_id');
-    const [isVerifying, setIsVerifying] = useState(!generated);
+    const generatedFromParams = searchParams.get('generated') === '1';
+    const [isVerifying, setIsVerifying] = useState(true);
+    const [isGeneratedFlow, setIsGeneratedFlow] = useState(false);
+
+    // Detect generated=1 from URL before paint so we never show "Processing Payment..."
+    useLayoutEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('generated') === '1') {
+            setIsGeneratedFlow(true);
+            setIsVerifying(false);
+            sessionStorage.setItem('resume_created', 'true');
+        }
+    }, []);
 
     useEffect(() => {
-        if (generated) {
-            sessionStorage.setItem('resume_created', 'true');
-            return;
-        }
-        // Give webhook a moment to process payment
+        if (isGeneratedFlow) return;
         const timer = setTimeout(() => {
             setIsVerifying(false);
             sessionStorage.setItem('payment_completed', 'true');
             sessionStorage.setItem('resume_created', 'true');
         }, 2000);
-
         return () => clearTimeout(timer);
-    }, [generated]);
+    }, [isGeneratedFlow]);
+
+    const generated = isGeneratedFlow || generatedFromParams;
 
     if (isVerifying) {
         return (
