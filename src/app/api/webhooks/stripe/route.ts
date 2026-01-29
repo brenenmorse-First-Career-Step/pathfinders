@@ -206,8 +206,11 @@ export async function POST(request: NextRequest) {
                                 if (userUpsertError) {
                                     paymentLogger.error('Failed to ensure user in public.users', {
                                         error: userUpsertError,
+                                        code: userUpsertError.code,
+                                        details: userUpsertError.details,
                                         userId,
                                     });
+                                    throw userUpsertError;
                                 }
                             }
 
@@ -462,59 +465,88 @@ export async function POST(request: NextRequest) {
                         ? subscription.customer
                         : (subscription.customer as Stripe.Customer).id;
 
-                    const customer = await stripe.customers.retrieve(customerIdStr);
+                    const customerRaw = await stripe.customers.retrieve(customerIdStr);
+                    const customer = customerRaw.deleted ? null : (customerRaw as Stripe.Customer);
 
-                    if (customer.deleted || !('metadata' in customer)) {
+                    if (!customer) {
                         paymentLogger.error('Customer not found or deleted', {
                             customerId: customerIdStr,
                         });
                         break;
                     }
 
-                    const userId = customer.metadata?.userId || subscription.metadata?.userId;
+                    // userId: metadata first, then fallback to checkout session (Stripe may not always set customer metadata)
+                    let userId: string | null =
+                        (customer.metadata && typeof customer.metadata.userId === 'string' ? customer.metadata.userId : null)
+                        || (subscription.metadata && typeof subscription.metadata.userId === 'string' ? subscription.metadata.userId : null);
 
                     if (!userId) {
-                        paymentLogger.error('Missing userId in customer or subscription metadata', {
+                        try {
+                            const sessions = await stripe.checkout.sessions.list({
+                                subscription: subscription.id,
+                                limit: 1,
+                            });
+                            const session = sessions.data[0];
+                            userId = (session?.metadata?.userId as string) || (session?.client_reference_id as string) || null;
+                        } catch (listErr) {
+                            paymentLogger.error('Failed to list checkout sessions for userId fallback', {
+                                error: listErr as Error,
+                                subscriptionId: subscription.id,
+                            });
+                        }
+                    }
+
+                    if (!userId) {
+                        paymentLogger.error('Missing userId in customer or subscription metadata and checkout session', {
                             subscriptionId: subscription.id,
                             customerId: customerIdStr,
                         });
                         break;
                     }
 
-                    // Ensure user exists in public.users (FK for subscriptions/resumes)
-                    if (!customer.deleted && 'email' in customer && customer.email) {
+                    // Ensure user exists in public.users (FK for subscriptions/resumes) – required before subscription upsert
+                    const customerEmail = typeof customer.email === 'string' ? customer.email : null;
+                    const customerName = (customer as { name?: string }).name ?? null;
+                    if (customerEmail) {
                         const { error: userUpsertError } = await supabase
                             .from('users')
                             .upsert(
                                 {
                                     id: userId,
-                                    email: customer.email,
-                                    full_name: (customer as { name?: string }).name ?? null,
+                                    email: customerEmail,
+                                    full_name: customerName,
                                 },
                                 { onConflict: 'id' }
                             );
                         if (userUpsertError) {
                             paymentLogger.error('Failed to ensure user in public.users (subscription event)', {
                                 error: userUpsertError,
+                                code: userUpsertError.code,
+                                details: userUpsertError.details,
                                 userId,
                             });
+                            throw userUpsertError;
                         }
                     }
 
                     // Fetch full subscription so we always have current_period_* (event object can be minimal)
                     const fullSub = await stripe.subscriptions.retrieve(subscription.id);
                     const subData = fullSub as Stripe.Subscription & {
-                        current_period_start: number;
-                        current_period_end: number;
-                        cancel_at_period_end: boolean | null;
+                        current_period_start?: number;
+                        current_period_end?: number;
+                        cancel_at_period_end?: boolean | null;
                     };
 
-                    const periodStart = subData.current_period_start != null && typeof subData.current_period_start === 'number'
-                        ? new Date(subData.current_period_start * 1000).toISOString()
-                        : new Date().toISOString();
-                    const periodEnd = subData.current_period_end != null && typeof subData.current_period_end === 'number'
-                        ? new Date(subData.current_period_end * 1000).toISOString()
-                        : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+                    const rawStart = subData.current_period_start;
+                    const rawEnd = subData.current_period_end;
+                    const periodStart =
+                        rawStart != null && (typeof rawStart === 'number' || typeof rawStart === 'string')
+                            ? new Date(typeof rawStart === 'number' ? rawStart * 1000 : parseInt(rawStart, 10) * 1000).toISOString()
+                            : new Date().toISOString();
+                    const periodEnd =
+                        rawEnd != null && (typeof rawEnd === 'number' || typeof rawEnd === 'string')
+                            ? new Date(typeof rawEnd === 'number' ? rawEnd * 1000 : parseInt(String(rawEnd), 10) * 1000).toISOString()
+                            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
                     const { error: subError } = await supabase
                         .from('subscriptions')
@@ -574,8 +606,12 @@ export async function POST(request: NextRequest) {
                         }
                     }
                 } catch (error) {
+                    const err = error as Error & { code?: string; details?: string };
                     paymentLogger.error('Error processing subscription', {
-                        error: error as Error,
+                        message: err.message,
+                        stack: err.stack,
+                        code: err.code,
+                        details: err.details,
                         subscriptionId: subscription.id,
                     });
                     throw error;
@@ -682,9 +718,15 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ received: true });
     } catch (error) {
-        logger.error('Webhook Handler', error as Error);
+        const err = error as Error & { code?: string; details?: string };
+        logger.error('Webhook Handler', err, {
+            message: err.message,
+            stack: err.stack,
+            code: err.code,
+            details: err.details,
+        });
         return NextResponse.json(
-            { error: 'Webhook handler failed' },
+            { error: 'Webhook handler failed', message: err.message },
             { status: 500 }
         );
     }
