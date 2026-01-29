@@ -124,8 +124,8 @@ export default function ReviewPage() {
           </h1>
           <p className="text-gray-600">
             {hasActiveSubscription 
-              ? "Everything looks good? Create your resume now (included in your subscription)"
-              : "Everything looks good? Subscribe for unlimited resume creation for a year"
+              ? "Everything looks good? Create your resume now — it's included in your subscription."
+              : "Everything looks good? Create your resume. You'll complete a one-time payment ($9/year) to unlock it."
             }
           </p>
         </div>
@@ -195,10 +195,10 @@ export default function ReviewPage() {
                     className="bg-step-green hover:bg-step-green/90"
                     disabled={isGenerating}
                   >
-                    {isGenerating ? 'Generating resume...' : 'Generate Resume'}
+                    {isGenerating ? 'Creating resume...' : 'Create my resume'}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
-                    Subscribed to yearly plan • Generate unlimited resumes
+                    No payment needed — included in your subscription
                   </p>
                 </>
               ) : (
@@ -210,10 +210,10 @@ export default function ReviewPage() {
                     className="bg-step-green hover:bg-step-green/90"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Checking...' : 'Subscribe for $9/year'}
+                    {isLoading ? 'Checking...' : 'Create my resume'}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
-                    Annual subscription • Unlimited resumes for one year • Secure payment via Stripe
+                    You'll go to payment ($9/year) to unlock this resume • Unlimited resumes for one year
                   </p>
                 </>
               )}
@@ -226,7 +226,7 @@ export default function ReviewPage() {
             {!hasActiveSubscription && (
               <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 mb-4">
                 <p className="text-sm text-yellow-800 font-medium">
-                  🔒 Watermark will be removed after payment
+                  🔒 Preview only — watermark is removed when you complete payment
                 </p>
               </div>
             )}
