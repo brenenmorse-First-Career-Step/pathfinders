@@ -224,7 +224,9 @@ export async function POST(request: NextRequest) {
                                     cancel_at_period_end: subData.cancel_at_period_end || false,
                                     updated_at: new Date().toISOString(),
                                 }, {
-                                    onConflict: 'stripe_subscription_id',
+                                    // subscriptions table enforces ONE row per user (user_id UNIQUE)
+                                    // Upsert by user_id so we always persist subscription status for the user.
+                                    onConflict: 'user_id',
                                 });
 
                             if (subError) {
@@ -233,6 +235,8 @@ export async function POST(request: NextRequest) {
                                     userId,
                                     subscriptionId: subscriptionObj.id,
                                 });
+                                // Critical: if we can't persist subscription, fail the webhook so Stripe retries.
+                                throw subError;
                             } else {
                                 paymentLogger.info('Subscription record created successfully in checkout.session.completed', {
                                     userId,
@@ -535,7 +539,8 @@ export async function POST(request: NextRequest) {
                             cancel_at_period_end: subData.cancel_at_period_end || false,
                             updated_at: new Date().toISOString(),
                         }, {
-                            onConflict: 'stripe_subscription_id',
+                            // Upsert by user_id (one subscription record per user)
+                            onConflict: 'user_id',
                         });
 
                     if (subError) {
@@ -544,6 +549,8 @@ export async function POST(request: NextRequest) {
                             userId,
                             subscriptionId: subscription.id,
                         });
+                        // Critical: fail webhook so Stripe retries instead of losing subscription state
+                        throw subError;
                     } else {
                         paymentLogger.info('Subscription record updated successfully', {
                             userId,
