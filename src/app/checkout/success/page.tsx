@@ -6,21 +6,24 @@ import Link from 'next/link';
 
 function SuccessContent() {
     const searchParams = useSearchParams();
-    const [isVerifying, setIsVerifying] = useState(true);
+    const generated = searchParams.get('generated') === '1';
     const sessionId = searchParams.get('session_id');
+    const [isVerifying, setIsVerifying] = useState(!generated);
 
     useEffect(() => {
-        // Give webhook a moment to process (or resume creation to complete)
+        if (generated) {
+            sessionStorage.setItem('resume_created', 'true');
+            return;
+        }
+        // Give webhook a moment to process payment
         const timer = setTimeout(() => {
             setIsVerifying(false);
-            // Set flag to trigger refresh on dashboard
             sessionStorage.setItem('payment_completed', 'true');
-            // Also set a flag for resume creation
             sessionStorage.setItem('resume_created', 'true');
         }, 2000);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [generated]);
 
     if (isVerifying) {
         return (
@@ -58,14 +61,16 @@ function SuccessContent() {
                     </svg>
                 </div>
 
-                {/* Success Message */}
+                {/* Success Message - different copy for generated vs payment */}
                 <h1 className="text-3xl font-bold text-charcoal mb-3">
-                    Payment Successful! 🎉
+                    {generated ? 'Resume created! 🎉' : 'Payment Successful! 🎉'}
                 </h1>
                 <p className="text-gray-600 mb-2">
-                    Your resume has been unlocked and is ready to download!
+                    {generated
+                        ? 'Your new resume is ready to download!'
+                        : 'Your resume has been unlocked and is ready to download!'}
                 </p>
-                {sessionId && (
+                {sessionId && !generated && (
                     <p className="text-xs text-gray-400 mb-6">
                         Session ID: {sessionId.slice(0, 20)}...
                     </p>

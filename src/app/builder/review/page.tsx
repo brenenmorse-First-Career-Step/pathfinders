@@ -69,7 +69,7 @@ export default function ReviewPage() {
           if (typeof sessionStorage !== 'undefined') {
             sessionStorage.setItem('resume_created', 'true');
           }
-          router.push('/checkout/success');
+          router.push('/checkout/success?generated=1');
           return;
         }
 
