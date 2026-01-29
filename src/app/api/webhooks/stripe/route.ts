@@ -300,26 +300,9 @@ export async function POST(request: NextRequest) {
                                 userId,
                                 sessionId: session.id,
                             });
-                            // Fallback: try to create resume anyway so new paid user gets one
-                            try {
-                                const { data: resumeCheck } = await supabase
-                                    .from('resumes')
-                                    .select('id')
-                                    .eq('user_id', userId)
-                                    .limit(1);
-                                if (!resumeCheck || resumeCheck.length === 0) {
-                                    await createResumeForSubscription(
-                                        supabase,
-                                        userId,
-                                        typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? ''
-                                    );
-                                }
-                            } catch (fallbackErr) {
-                                paymentLogger.error('Fallback resume creation failed', {
-                                    error: fallbackErr,
-                                    userId,
-                                });
-                            }
+                            // IMPORTANT: do not swallow subscription persistence errors.
+                            // If we return 200 here, Stripe will not retry and the user ends up "paid" but unsubscribed in DB.
+                            throw subError;
                         }
                         break;
                     }
@@ -585,6 +568,8 @@ export async function POST(request: NextRequest) {
                         error: error as Error,
                         subscriptionId: subscription.id,
                     });
+                    // IMPORTANT: bubble up so Stripe gets non-200 and retries.
+                    throw error;
                 }
 
                 break;
