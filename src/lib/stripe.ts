@@ -156,6 +156,12 @@ export async function createSubscriptionCheckoutSession(userId: string, customer
             
             if (customers.data.length > 0) {
                 customerId = customers.data[0].id;
+                // Update existing customer metadata to ensure userId is set
+                await stripe.customers.update(customerId, {
+                    metadata: {
+                        userId,
+                    },
+                });
             } else {
                 const customer = await stripe.customers.create({
                     email: customerEmail,

@@ -5,6 +5,107 @@ import { verifyWebhookSignature } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase';
 import { logger, paymentLogger } from '@/lib/logger';
 
+// Helper function to create resume for subscription
+async function createResumeForSubscription(
+    supabase: ReturnType<typeof createAdminClient>,
+    userId: string,
+    subscriptionId: string
+) {
+    try {
+        // Fetch user's basic info
+        const { data: user } = await supabase
+            .from('users')
+            .select('full_name, email')
+            .eq('id', userId)
+            .single();
+
+        // Generate unique shareable link
+        const shareableLink = crypto.randomUUID();
+
+        // Calculate next version number
+        const { data: existingResumes } = await supabase
+            .from('resumes')
+            .select('version')
+            .eq('user_id', userId)
+            .order('version', { ascending: false })
+            .limit(1);
+
+        const nextVersion = existingResumes && existingResumes.length > 0
+            ? (existingResumes[0].version || 0) + 1
+            : 1;
+
+        // Create resume record
+        const { data: resume, error: resumeError } = await supabase
+            .from('resumes')
+            .insert({
+                user_id: userId,
+                title: `${user?.full_name || 'My'} Resume`,
+                status: 'paid',
+                shareable_link: shareableLink,
+                stripe_session_id: null,
+                version: nextVersion,
+                linkedin_content: null,
+                pdf_url: null,
+            })
+            .select()
+            .single();
+
+        if (resumeError) {
+            paymentLogger.error('Failed to create resume for subscription', {
+                error: resumeError,
+                userId,
+                subscriptionId,
+            });
+            return { success: false, error: resumeError };
+        }
+
+        paymentLogger.info('Resume created for subscription', {
+            userId,
+            resumeId: resume.id,
+            subscriptionId,
+        });
+
+        // Trigger PDF generation
+        try {
+            const { generateAndUploadResumePDF } = await import('@/lib/pdf/generator');
+            const { pdfUrl, error: pdfError } = await generateAndUploadResumePDF(userId);
+            
+            if (pdfError) {
+                paymentLogger.error('PDF generation failed', {
+                    error: pdfError,
+                    userId,
+                    resumeId: resume.id,
+                });
+            } else if (pdfUrl) {
+                await supabase
+                    .from('resumes')
+                    .update({ pdf_url: pdfUrl })
+                    .eq('id', resume.id);
+                
+                paymentLogger.info('PDF generated and uploaded successfully', {
+                    userId,
+                    resumeId: resume.id,
+                    pdfUrl,
+                });
+            }
+        } catch (pdfGenError) {
+            paymentLogger.error('PDF generation error', {
+                error: pdfGenError,
+                resumeId: resume.id,
+            });
+        }
+
+        return { success: true, resumeId: resume.id };
+    } catch (error) {
+        paymentLogger.error('Error in createResumeForSubscription', {
+            error: error as Error,
+            userId,
+            subscriptionId,
+        });
+        return { success: false, error };
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Get the raw body
@@ -66,13 +167,48 @@ export async function POST(request: NextRequest) {
                 try {
                     const supabase = createAdminClient();
 
-                    // If this is a subscription checkout, the subscription will be handled by customer.subscription.created
+                    // If this is a subscription checkout, try to create resume immediately
+                    // This is a fallback in case customer.subscription.created doesn't fire or is delayed
                     if (session.mode === 'subscription' && session.subscription) {
-                        paymentLogger.info('Subscription checkout completed, waiting for subscription.created event', {
+                        paymentLogger.info('Subscription checkout completed, attempting to create resume', {
                             sessionId: session.id,
                             subscriptionId: session.subscription,
                             userId,
                         });
+                        
+                        // Try to retrieve the subscription to get full details
+                        try {
+                            const stripe = (await import('@/lib/stripe')).getStripe();
+                            const subscriptionObj = await stripe.subscriptions.retrieve(session.subscription as string);
+                            
+                            // Only create resume if subscription is active
+                            if (subscriptionObj.status === 'active') {
+                                // Check if resume already exists (in case customer.subscription.created already created it)
+                                const { data: existingResume } = await supabase
+                                    .from('resumes')
+                                    .select('id')
+                                    .eq('user_id', userId)
+                                    .order('created_at', { ascending: false })
+                                    .limit(1);
+                                
+                                // Only create if no recent resume exists
+                                if (!existingResume || existingResume.length === 0) {
+                                    await createResumeForSubscription(supabase, userId, subscriptionObj.id);
+                                } else {
+                                    paymentLogger.info('Resume already exists, skipping creation', {
+                                        userId,
+                                        resumeId: existingResume[0].id,
+                                    });
+                                }
+                            }
+                        } catch (subError) {
+                            paymentLogger.error('Error processing subscription checkout', {
+                                error: subError,
+                                userId,
+                                sessionId: session.id,
+                            });
+                            // Continue to let customer.subscription.created handle it
+                        }
                         break;
                     }
 
@@ -289,74 +425,23 @@ export async function POST(request: NextRequest) {
 
                         // If subscription is newly created and active, create first resume
                         if (event.type === 'customer.subscription.created' && subscription.status === 'active') {
-                            // Fetch user's basic info
-                            const { data: user } = await supabase
-                                .from('users')
-                                .select('full_name, email')
-                                .eq('id', userId)
-                                .single();
-
-                            // Generate unique shareable link
-                            const shareableLink = crypto.randomUUID();
-
-                            // Calculate next version number
-                            const { data: existingResumes } = await supabase
+                            // Check if resume already exists (in case checkout.session.completed already created it)
+                            const { data: existingResume } = await supabase
                                 .from('resumes')
-                                .select('version')
+                                .select('id')
                                 .eq('user_id', userId)
-                                .order('version', { ascending: false })
+                                .order('created_at', { ascending: false })
                                 .limit(1);
-
-                            const nextVersion = existingResumes && existingResumes.length > 0
-                                ? (existingResumes[0].version || 0) + 1
-                                : 1;
-
-                            // Create resume record
-                            const { data: resume, error: resumeError } = await supabase
-                                .from('resumes')
-                                .insert({
-                                    user_id: userId,
-                                    title: `${user?.full_name || 'My'} Resume`,
-                                    status: 'paid',
-                                    shareable_link: shareableLink,
-                                    stripe_session_id: null,
-                                    version: nextVersion,
-                                    linkedin_content: null,
-                                    pdf_url: null,
-                                })
-                                .select()
-                                .single();
-
-                            if (resumeError) {
-                                paymentLogger.error('Failed to create resume for new subscription', {
-                                    error: resumeError,
-                                    userId,
-                                    subscriptionId: subscription.id,
-                                });
+                            
+                            // Only create if no resume exists
+                            if (!existingResume || existingResume.length === 0) {
+                                await createResumeForSubscription(supabase, userId, subscription.id);
                             } else {
-                                paymentLogger.info('Resume created for new subscription', {
+                                paymentLogger.info('Resume already exists from checkout.session.completed', {
                                     userId,
-                                    resumeId: resume.id,
+                                    resumeId: existingResume[0].id,
                                     subscriptionId: subscription.id,
                                 });
-
-                                // Trigger PDF generation
-                                try {
-                                    const { generateAndUploadResumePDF } = await import('@/lib/pdf/generator');
-                                    const { pdfUrl } = await generateAndUploadResumePDF(userId);
-                                    
-                                    if (pdfUrl) {
-                                        await supabase
-                                            .from('resumes')
-                                            .update({ pdf_url: pdfUrl })
-                                            .eq('id', resume.id);
-                                    }
-                                } catch (pdfGenError) {
-                                    paymentLogger.error('PDF generation error for subscription resume', {
-                                        error: pdfGenError,
-                                        resumeId: resume.id,
-                                    });
-                                }
                             }
                         }
                     }
