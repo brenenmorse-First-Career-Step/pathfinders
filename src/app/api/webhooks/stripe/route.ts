@@ -455,14 +455,18 @@ export async function POST(request: NextRequest) {
 
                 try {
                     const supabase = createAdminClient();
-
-                    // Get customer to find userId
                     const stripe = (await import('@/lib/stripe')).getStripe();
-                    const customer = await stripe.customers.retrieve(subscription.customer as string);
+
+                    // subscription.customer can be string (id) or expanded Customer object – retrieve needs string id
+                    const customerIdStr = typeof subscription.customer === 'string'
+                        ? subscription.customer
+                        : (subscription.customer as Stripe.Customer).id;
+
+                    const customer = await stripe.customers.retrieve(customerIdStr);
 
                     if (customer.deleted || !('metadata' in customer)) {
                         paymentLogger.error('Customer not found or deleted', {
-                            customerId: subscription.customer,
+                            customerId: customerIdStr,
                         });
                         break;
                     }
@@ -472,7 +476,7 @@ export async function POST(request: NextRequest) {
                     if (!userId) {
                         paymentLogger.error('Missing userId in customer or subscription metadata', {
                             subscriptionId: subscription.id,
-                            customerId: subscription.customer,
+                            customerId: customerIdStr,
                         });
                         break;
                     }
@@ -497,32 +501,33 @@ export async function POST(request: NextRequest) {
                         }
                     }
 
-                    // Upsert subscription record
-                    // Use subscription object directly from event (it has all properties)
-                    // Type assertion needed because Stripe types may not expose all properties
-                    const subData = subscription as Stripe.Subscription & {
+                    // Fetch full subscription so we always have current_period_* (event object can be minimal)
+                    const fullSub = await stripe.subscriptions.retrieve(subscription.id);
+                    const subData = fullSub as Stripe.Subscription & {
                         current_period_start: number;
                         current_period_end: number;
                         cancel_at_period_end: boolean | null;
                     };
-                    
-                    const customerId = typeof subData.customer === 'string' 
-                        ? subData.customer 
-                        : subData.customer.id;
-                    
+
+                    const periodStart = subData.current_period_start != null && typeof subData.current_period_start === 'number'
+                        ? new Date(subData.current_period_start * 1000).toISOString()
+                        : new Date().toISOString();
+                    const periodEnd = subData.current_period_end != null && typeof subData.current_period_end === 'number'
+                        ? new Date(subData.current_period_end * 1000).toISOString()
+                        : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+
                     const { error: subError } = await supabase
                         .from('subscriptions')
                         .upsert({
                             user_id: userId,
                             stripe_subscription_id: subData.id,
-                            stripe_customer_id: customerId,
+                            stripe_customer_id: customerIdStr,
                             status: subData.status,
-                            current_period_start: new Date(subData.current_period_start * 1000).toISOString(),
-                            current_period_end: new Date(subData.current_period_end * 1000).toISOString(),
-                            cancel_at_period_end: subData.cancel_at_period_end || false,
+                            current_period_start: periodStart,
+                            current_period_end: periodEnd,
+                            cancel_at_period_end: subData.cancel_at_period_end ?? false,
                             updated_at: new Date().toISOString(),
                         }, {
-                            // Upsert by user_id (one subscription record per user)
                             onConflict: 'user_id',
                         });
 
@@ -532,35 +537,40 @@ export async function POST(request: NextRequest) {
                             userId,
                             subscriptionId: subscription.id,
                         });
-                        // Critical: fail webhook so Stripe retries instead of losing subscription state
                         throw subError;
-                    } else {
-                        paymentLogger.info('Subscription record updated successfully', {
-                            userId,
-                            subscriptionId: subscription.id,
-                            status: subscription.status,
-                        });
+                    }
 
-                        // If subscription is newly created and active/trialing, create first resume
-                        if (event.type === 'customer.subscription.created' && (subscription.status === 'active' || subscription.status === 'trialing')) {
-                            // Check if resume already exists (in case checkout.session.completed already created it)
-                            const { data: existingResume } = await supabase
-                                .from('resumes')
-                                .select('id')
-                                .eq('user_id', userId)
-                                .order('created_at', { ascending: false })
-                                .limit(1);
-                            
-                            // Only create if no resume exists
-                            if (!existingResume || existingResume.length === 0) {
-                                await createResumeForSubscription(supabase, userId, subscription.id);
-                            } else {
-                                paymentLogger.info('Resume already exists from checkout.session.completed', {
+                    paymentLogger.info('Subscription record updated successfully', {
+                        userId,
+                        subscriptionId: subscription.id,
+                        status: subscription.status,
+                    });
+
+                    // If subscription is newly created and active/trialing, create first resume
+                    if (event.type === 'customer.subscription.created' && (fullSub.status === 'active' || fullSub.status === 'trialing')) {
+                        const { data: existingResume } = await supabase
+                            .from('resumes')
+                            .select('id')
+                            .eq('user_id', userId)
+                            .order('created_at', { ascending: false })
+                            .limit(1);
+
+                        if (!existingResume || existingResume.length === 0) {
+                            const result = await createResumeForSubscription(supabase, userId, subscription.id);
+                            if (!result.success) {
+                                paymentLogger.error('createResumeForSubscription failed in subscription event', {
                                     userId,
-                                    resumeId: existingResume[0].id,
                                     subscriptionId: subscription.id,
+                                    error: result.error,
                                 });
+                                // Don't throw – subscription is saved; resume can be created on next checkout.session.completed or manually
                             }
+                        } else {
+                            paymentLogger.info('Resume already exists from checkout.session.completed', {
+                                userId,
+                                resumeId: existingResume[0].id,
+                                subscriptionId: subscription.id,
+                            });
                         }
                     }
                 } catch (error) {
@@ -568,7 +578,6 @@ export async function POST(request: NextRequest) {
                         error: error as Error,
                         subscriptionId: subscription.id,
                     });
-                    // IMPORTANT: bubble up so Stripe gets non-200 and retries.
                     throw error;
                 }
 
