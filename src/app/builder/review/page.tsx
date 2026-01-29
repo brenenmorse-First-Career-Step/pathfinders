@@ -24,21 +24,40 @@ export default function ReviewPage() {
 
     try {
       const supabase = createBrowserClient();
+      // Use maybeSingle() instead of single() to avoid error when no subscription exists
       const { data: subscription, error } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
-      if (error || !subscription) {
+      if (error) {
+        console.error('Error checking subscription:', error);
         setHasActiveSubscription(false);
-      } else {
-        // Check if subscription is still within current period
-        const now = new Date();
-        const periodEnd = new Date(subscription.current_period_end);
-        setHasActiveSubscription(periodEnd > now && !subscription.cancel_at_period_end);
+        return;
       }
+
+      if (!subscription) {
+        setHasActiveSubscription(false);
+        return;
+      }
+
+      // Check if subscription is still within current period
+      const now = new Date();
+      const periodEnd = new Date(subscription.current_period_end);
+      const isActive = periodEnd > now && !subscription.cancel_at_period_end;
+      
+      console.log('Subscription check:', {
+        userId: user.id,
+        subscriptionId: subscription.id,
+        status: subscription.status,
+        periodEnd: subscription.current_period_end,
+        now: now.toISOString(),
+        isActive,
+      });
+      
+      setHasActiveSubscription(isActive);
     } catch (error) {
       console.error('Error checking subscription:', error);
       setHasActiveSubscription(false);
@@ -153,21 +172,16 @@ export default function ReviewPage() {
             <div className="pt-4">
               {hasActiveSubscription ? (
                 <>
-                  <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-green-800 font-medium">
-                      ✅ You have an active subscription! Create unlimited resumes for free.
-                    </p>
-                  </div>
                   <Button
                     onClick={handleCompleteAndPay}
                     size="lg"
                     fullWidth
                     className="bg-step-green hover:bg-step-green/90"
                   >
-                    Create Resume (Free)
+                    Generate Resume
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
-                    Your subscription is active • Resume will be created immediately
+                    Subscribed to yearly plan • Generate unlimited resumes
                   </p>
                 </>
               ) : (
@@ -192,11 +206,13 @@ export default function ReviewPage() {
           {/* Right Column - Live Preview with Watermark */}
           <div className="flex-1 lg:sticky lg:top-6 h-fit">
             <h2 className="text-xl font-bold text-charcoal mb-4">Preview</h2>
-            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 mb-4">
-              <p className="text-sm text-yellow-800 font-medium">
-                🔒 Watermark will be removed after payment
-              </p>
-            </div>
+            {!hasActiveSubscription && (
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-800 font-medium">
+                  🔒 Watermark will be removed after payment
+                </p>
+              </div>
+            )}
             <LiveResumePreview
               fullName={profile.fullName}
               email={user?.email}
