@@ -12,12 +12,22 @@ async function createResumeForSubscription(
     subscriptionId: string
 ) {
     try {
-        // Fetch user's basic info
-        const { data: user } = await supabase
+        // Fetch user's basic info (required for FK and title)
+        const { data: user, error: userFetchError } = await supabase
             .from('users')
             .select('full_name, email')
             .eq('id', userId)
             .single();
+
+        if (userFetchError || !user) {
+            paymentLogger.error('User not found for resume creation – ensure user exists in public.users', {
+                error: userFetchError,
+                code: userFetchError?.code,
+                userId,
+                subscriptionId,
+            });
+            return { success: false, error: userFetchError || new Error('User not found in public.users') };
+        }
 
         // Generate unique shareable link
         const shareableLink = crypto.randomUUID();
@@ -53,6 +63,10 @@ async function createResumeForSubscription(
         if (resumeError) {
             paymentLogger.error('Failed to create resume for subscription', {
                 error: resumeError,
+                code: resumeError.code,
+                message: resumeError.message,
+                details: resumeError.details,
+                hint: resumeError.hint,
                 userId,
                 subscriptionId,
             });
@@ -266,6 +280,7 @@ export async function POST(request: NextRequest) {
                                             subscriptionId: subscriptionObj.id,
                                             error: result.error,
                                         });
+                                        throw result.error ?? new Error('Resume creation failed');
                                     }
                                 } else {
                                     paymentLogger.info('Resume already exists, skipping creation', {
@@ -291,11 +306,18 @@ export async function POST(request: NextRequest) {
                                     userId,
                                     subscriptionId: session.subscription,
                                 });
-                                await createResumeForSubscription(
+                                const fallbackResult = await createResumeForSubscription(
                                     supabase,
                                     userId,
                                     typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? ''
                                 );
+                                if (!fallbackResult.success) {
+                                    paymentLogger.error('Fallback createResumeForSubscription failed', {
+                                        userId,
+                                        error: fallbackResult.error,
+                                    });
+                                    throw fallbackResult.error ?? new Error('Resume creation failed');
+                                }
                             }
                         } catch (subError) {
                             paymentLogger.error('Error processing subscription checkout', {
@@ -580,6 +602,37 @@ export async function POST(request: NextRequest) {
 
                     // If subscription is newly created and active/trialing, create first resume
                     if (event.type === 'customer.subscription.created' && (fullSub.status === 'active' || fullSub.status === 'trialing')) {
+                        // Ensure user exists in public.users before resume creation (we may have skipped upsert if customerEmail was missing)
+                        const { data: existingUser } = await supabase
+                            .from('users')
+                            .select('id')
+                            .eq('id', userId)
+                            .single();
+                        if (!existingUser) {
+                            const emailToUse = customerEmail || (await (async () => {
+                                try {
+                                    const sessions = await stripe.checkout.sessions.list({ subscription: subscription.id, limit: 1 });
+                                    const sess = sessions.data[0] as { customer_email?: string } | undefined;
+                                    return sess?.customer_email ?? null;
+                                } catch {
+                                    return null;
+                                }
+                            })());
+                            if (emailToUse) {
+                                const { error: upsertErr } = await supabase
+                                    .from('users')
+                                    .upsert({ id: userId, email: emailToUse, full_name: customerName }, { onConflict: 'id' });
+                                if (upsertErr) {
+                                    paymentLogger.error('Failed to ensure user before resume creation', {
+                                        error: upsertErr,
+                                        userId,
+                                        subscriptionId: subscription.id,
+                                    });
+                                    throw upsertErr;
+                                }
+                            }
+                        }
+
                         const { data: existingResume } = await supabase
                             .from('resumes')
                             .select('id')
@@ -595,7 +648,7 @@ export async function POST(request: NextRequest) {
                                     subscriptionId: subscription.id,
                                     error: result.error,
                                 });
-                                // Don't throw – subscription is saved; resume can be created on next checkout.session.completed or manually
+                                throw result.error ?? new Error('Resume creation failed');
                             }
                         } else {
                             paymentLogger.info('Resume already exists from checkout.session.completed', {
