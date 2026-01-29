@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createBrowserClient } from '@/lib/supabase';
 import Link from 'next/link';
@@ -20,6 +20,8 @@ interface Resume {
     version: number;
 }
 
+const FETCH_DEBOUNCE_MS = 1500;
+
 export default function ResumesPage() {
     const { user } = useAuth();
     const { profile } = useProfile();
@@ -29,55 +31,25 @@ export default function ResumesPage() {
     const [linkedInContent, setLinkedInContent] = useState<LinkedInContent | null>(null);
     const [generatingLinkedIn, setGeneratingLinkedIn] = useState(false);
     const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
+    const lastFetchRef = useRef<{ userId: string; at: number } | null>(null);
+    const hasFetchedOnceRef = useRef(false);
 
-    useEffect(() => {
-        fetchResumes();
-        
-        // Check if coming from payment success page or resume creation
-        const paymentCompleted = sessionStorage.getItem('payment_completed');
-        const resumeCreated = sessionStorage.getItem('resume_created');
-        
-        if (paymentCompleted === 'true' || resumeCreated === 'true') {
-            // Clear the flags
-            sessionStorage.removeItem('payment_completed');
-            sessionStorage.removeItem('resume_created');
-            // Refresh resumes after a short delay to allow webhook/resume creation to process
-            setTimeout(() => {
-                fetchResumes();
-            }, 2000);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
-
-    // Refresh resumes when page becomes visible (e.g., after returning from payment)
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && user) {
-                fetchResumes();
-            }
-        };
-
-        const handleFocus = () => {
-            if (user) {
-                fetchResumes();
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', handleFocus);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', handleFocus);
-        };
-    }, [user]);
-
-    const fetchResumes = async () => {
+    const fetchResumes = useCallback(async (showLoadingSpinner = true) => {
         if (!user) return;
+
+        const now = Date.now();
+        const last = lastFetchRef.current;
+        if (last?.userId === user.id && now - last.at < FETCH_DEBOUNCE_MS) {
+            return;
+        }
+        lastFetchRef.current = { userId: user.id, at: now };
+
+        if (showLoadingSpinner && !hasFetchedOnceRef.current) {
+            setLoading(true);
+        }
 
         try {
             const supabase = createBrowserClient();
-            // Fetch paid resumes (PDF may still be generating)
             const { data, error } = await supabase
                 .from('resumes')
                 .select('*')
@@ -86,25 +58,61 @@ export default function ResumesPage() {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            
-            console.log('Fetched resumes:', {
-                count: data?.length || 0,
-                resumes: data?.map(r => ({ 
-                    id: r.id, 
-                    version: r.version, 
-                    title: r.title, 
-                    status: r.status,
-                    created_at: r.created_at 
-                })) || [],
-            });
-            
+            hasFetchedOnceRef.current = true;
             setResumes(data || []);
         } catch (error) {
             console.error('Error fetching resumes:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [user?.id]);
+
+    // Fetch once per user id; optional delayed refresh when coming from checkout
+    useEffect(() => {
+        if (!user?.id) {
+            setLoading(false);
+            return;
+        }
+        hasFetchedOnceRef.current = false;
+        fetchResumes(true);
+
+        const paymentCompleted = sessionStorage.getItem('payment_completed');
+        const resumeCreated = sessionStorage.getItem('resume_created');
+
+        if (paymentCompleted === 'true' || resumeCreated === 'true') {
+            sessionStorage.removeItem('payment_completed');
+            sessionStorage.removeItem('resume_created');
+            const t = setTimeout(() => fetchResumes(false), 2000);
+            return () => clearTimeout(t);
+        }
+    }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Refresh when tab becomes visible again (e.g. return from checkout in another tab)
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                lastFetchRef.current = null;
+                fetchResumes(false);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [user?.id, fetchResumes]);
+
+    // When any resume is still generating PDF, poll occasionally until all are ready
+    useEffect(() => {
+        const hasGenerating = resumes.some((r) => !r.pdf_url);
+        if (!user?.id || !hasGenerating) return;
+
+        const interval = setInterval(() => {
+            lastFetchRef.current = null;
+            fetchResumes(false);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [user?.id, resumes, fetchResumes]);
 
     const handleDeleteResume = async (resumeId: string) => {
         if (!confirm('Are you sure you want to delete this resume? This action cannot be undone.')) {
@@ -120,8 +128,8 @@ export default function ResumesPage() {
 
             if (error) throw error;
 
-            // Refresh the list
-            fetchResumes();
+            // Refresh the list without full-page loading
+            fetchResumes(false);
         } catch (error) {
             console.error('Error deleting resume:', error);
             alert('Failed to delete resume. Please try again.');
