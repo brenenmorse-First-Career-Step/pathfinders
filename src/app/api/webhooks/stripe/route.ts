@@ -167,19 +167,58 @@ export async function POST(request: NextRequest) {
                 try {
                     const supabase = createAdminClient();
 
-                    // If this is a subscription checkout, try to create resume immediately
-                    // This is a fallback in case customer.subscription.created doesn't fire or is delayed
+                    // If this is a subscription checkout, create subscription record immediately
+                    // This ensures subscription is created even if customer.subscription.created doesn't fire
                     if (session.mode === 'subscription' && session.subscription) {
-                        paymentLogger.info('Subscription checkout completed, attempting to create resume', {
+                        paymentLogger.info('Subscription checkout completed, creating subscription record', {
                             sessionId: session.id,
                             subscriptionId: session.subscription,
                             userId,
                         });
                         
-                        // Try to retrieve the subscription to get full details
                         try {
                             const stripe = (await import('@/lib/stripe')).getStripe();
                             const subscriptionObj = await stripe.subscriptions.retrieve(session.subscription as string);
+                            
+                            // Create subscription record
+                            const subData = subscriptionObj as unknown as Stripe.Subscription & {
+                                current_period_start: number;
+                                current_period_end: number;
+                                cancel_at_period_end: boolean | null;
+                            };
+                            
+                            const customerId = typeof subData.customer === 'string' 
+                                ? subData.customer 
+                                : subData.customer.id;
+                            
+                            const { error: subError } = await supabase
+                                .from('subscriptions')
+                                .upsert({
+                                    user_id: userId,
+                                    stripe_subscription_id: subData.id,
+                                    stripe_customer_id: customerId,
+                                    status: subData.status,
+                                    current_period_start: new Date(subData.current_period_start * 1000).toISOString(),
+                                    current_period_end: new Date(subData.current_period_end * 1000).toISOString(),
+                                    cancel_at_period_end: subData.cancel_at_period_end || false,
+                                    updated_at: new Date().toISOString(),
+                                }, {
+                                    onConflict: 'stripe_subscription_id',
+                                });
+
+                            if (subError) {
+                                paymentLogger.error('Failed to create subscription record in checkout.session.completed', {
+                                    error: subError,
+                                    userId,
+                                    subscriptionId: subscriptionObj.id,
+                                });
+                            } else {
+                                paymentLogger.info('Subscription record created successfully in checkout.session.completed', {
+                                    userId,
+                                    subscriptionId: subscriptionObj.id,
+                                    status: subscriptionObj.status,
+                                });
+                            }
                             
                             // Only create resume if subscription is active
                             if (subscriptionObj.status === 'active') {

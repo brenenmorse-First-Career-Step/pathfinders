@@ -83,6 +83,18 @@ export default function ResumesPage() {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
+            
+            console.log('Fetched resumes:', {
+                count: data?.length || 0,
+                resumes: data?.map(r => ({ 
+                    id: r.id, 
+                    version: r.version, 
+                    title: r.title, 
+                    status: r.status,
+                    created_at: r.created_at 
+                })) || [],
+            });
+            
             setResumes(data || []);
         } catch (error) {
             console.error('Error fetching resumes:', error);
