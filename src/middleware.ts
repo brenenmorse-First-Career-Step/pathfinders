@@ -62,9 +62,17 @@ export async function middleware(request: NextRequest) {
 
         // Admin routes: separate URL /admin, dedicated login at /admin/login
         const isAdminLogin = pathname === '/admin/login' || pathname.startsWith('/admin/login/');
+        const isAdminRoot = pathname === '/admin' || pathname === '/admin/';
         const isAdminRoute = pathname.startsWith('/admin');
 
         if (isAdminRoute) {
+            // Always redirect /admin and /admin/ to login or dashboard (avoids 404 if page not found)
+            if (isAdminRoot) {
+                if (!isAuthenticated) return NextResponse.redirect(new URL('/admin/login', request.url));
+                const { data: userRow } = await supabase.from('users').select('role').eq('id', user.id).single();
+                if (userRow?.role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+                return NextResponse.redirect(new URL('/dashboard', request.url));
+            }
             if (isAdminLogin) return response;
             if (!isAuthenticated) return NextResponse.redirect(new URL('/admin/login', request.url));
             const { data: userRow } = await supabase.from('users').select('role').eq('id', user.id).single();
