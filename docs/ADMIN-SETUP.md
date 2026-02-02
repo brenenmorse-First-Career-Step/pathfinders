@@ -17,30 +17,33 @@ UPDATE users SET role = 'admin' WHERE email = 'admin@email.com';
 
 That updates **public.users** for an existing row. It does **not** create the user in **Supabase Auth**. You must have an Auth user first.
 
-### Correct order
+### Create admin user via SQL (no app signup)
 
-1. **Create the admin account in Supabase Auth**
-   - Go to your app’s **Sign up** page: `https://firstcareersteps.com/signup`
-   - Sign up with:
+1. **Run the role migration** (if you haven’t already)
+   - In Supabase SQL Editor, run `sql/admin-migration-role-blocked.sql`.
+   - That adds `role` and `blocked_at` to `public.users`.
+
+2. **Create the admin user in the database**
+   - In Supabase SQL Editor, run `sql/create-admin-user.sql`.
+   - That script creates the user in **auth.users**, **auth.identities**, and **public.users** with:
      - Email: **admin@email.com**
      - Password: **Admin123**
-   - This creates the user in **auth.users** and (via your app) in **public.users**.
-
-2. **Then run the migration** (if you haven’t already)
-   - In Supabase SQL Editor, run `sql/admin-migration-role-blocked.sql`.
-   - That adds `role` and `blocked_at` and runs:
-     - `UPDATE users SET role = 'admin' WHERE email = 'admin@email.com';`
+     - Role: **admin**
+   - No signup through the app is required.
 
 3. **Log in to the admin panel**
    - Go to `https://firstcareersteps.com/admin/login`
    - Sign in with **admin@email.com** and **Admin123**.
 
-### If you already ran the migration before signing up
+### If the SQL script fails (e.g. permission denied on auth.users)
 
-- Sign up at `/signup` with **admin@email.com** and **Admin123**.
-- Then run only the backfill in Supabase SQL Editor:
+- Create the user in **Supabase Dashboard**: Authentication → Users → **Add user** → Email: **admin@email.com**, Password: **Admin123**.
+- Then in SQL Editor run:
   ```sql
-  UPDATE users SET role = 'admin' WHERE email = 'admin@email.com';
+  -- Replace USER_ID_HERE with the user id from Dashboard (Authentication → Users)
+  INSERT INTO public.users (id, email, full_name, role)
+  VALUES ('USER_ID_HERE', 'admin@email.com', 'Admin', 'admin')
+  ON CONFLICT (id) DO UPDATE SET role = 'admin';
   ```
 
 ### If the account exists but you forgot the password
