@@ -60,6 +60,26 @@ export async function middleware(request: NextRequest) {
             userId: user?.id,
         });
 
+        // Admin routes: separate URL /admin, dedicated login at /admin/login
+        const isAdminLogin = pathname === '/admin/login' || pathname.startsWith('/admin/login/');
+        const isAdminRoute = pathname.startsWith('/admin');
+
+        if (isAdminRoute) {
+            if (isAdminLogin) return response;
+            if (!isAuthenticated) return NextResponse.redirect(new URL('/admin/login', request.url));
+            const { data: userRow } = await supabase.from('users').select('role').eq('id', user.id).single();
+            if (userRow?.role !== 'admin') return NextResponse.redirect(new URL('/dashboard', request.url));
+            return response;
+        }
+
+        // Blocked users: redirect to /blocked when accessing app routes (not public pages)
+        if (isAuthenticated && pathname !== '/blocked' && pathname !== '/' && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
+            const { data: userRow } = await supabase.from('users').select('blocked_at').eq('id', user.id).single();
+            if (userRow?.blocked_at) {
+                return NextResponse.redirect(new URL('/blocked', request.url));
+            }
+        }
+
         // Check if the route is protected
         const isProtectedRoute = protectedRoutes.some((route) =>
             pathname.startsWith(route)
