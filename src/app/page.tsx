@@ -1,11 +1,23 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Header from "@/components/Header";
+import VideoModal from "@/components/VideoModal";
 
 export default function HomePage() {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+
+      <VideoModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        videoId="J0_67p8GHIs"
+      />
 
       {/* Hero Section */}
       <section className="relative flex-1 bg-gradient-hero overflow-hidden">
@@ -59,7 +71,10 @@ export default function HomePage() {
                     />
                   </svg>
                 </Link>
-                <button className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-charcoal font-semibold text-lg rounded-xl hover:bg-gray-50 transition-all duration-200 border-2 border-gray-200">
+                <button
+                  onClick={() => setIsVideoModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-charcoal font-semibold text-lg rounded-xl hover:bg-gray-50 transition-all duration-200 border-2 border-gray-200"
+                >
                   <svg
                     className="w-5 h-5 text-career-blue"
                     fill="currentColor"
@@ -71,6 +86,7 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
+
 
             {/* Hero Illustration */}
             <div className="flex-1 relative animate-scale-in">
