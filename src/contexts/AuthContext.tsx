@@ -156,15 +156,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
 
-                // Send welcome email
+                // Send welcome email via API route to avoid bundling server-side code in the browser
                 try {
-                    const { sendEmail } = await import('@/lib/email');
-                    const { WelcomeEmailTemplate } = await import('@/components/emails/templates');
-
-                    await sendEmail({
-                        to: data.user.email!,
-                        subject: 'Welcome to First Career Steps!',
-                        html: WelcomeEmailTemplate(fullName),
+                    await fetch('/api/auth/send-welcome-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: data.user.email,
+                            fullName: fullName,
+                        }),
                     });
                 } catch (emailError) {
                     // Log error but don't fail the signup process
