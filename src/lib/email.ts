@@ -21,10 +21,10 @@ export const sendEmail = async (payload: EmailPayload) => {
             html,
         });
 
-        logger.info('Email sent successfully', { messageId: data.error ? null : data.data?.id, to });
+        logger.info('Email', 'Email sent successfully', { messageId: data.error ? null : data.data?.id, to });
         return { success: true, data };
     } catch (error) {
-        logger.error('Failed to send email', error as Error, { to });
+        logger.error('Email', 'Failed to send email', { to, error: error as Error });
         return { success: false, error };
     }
 };

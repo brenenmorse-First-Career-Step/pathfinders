@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        logger.error('Failed to send welcome email via API', error as Error);
+        logger.error('Email', error as Error, { message: 'Failed to send welcome email via API' });
         return NextResponse.json(
             { error: 'Failed to send email' },
             { status: 500 }
