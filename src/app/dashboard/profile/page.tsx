@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { createBrowserClient } from '@/lib/supabase';
 import Link from 'next/link';
 

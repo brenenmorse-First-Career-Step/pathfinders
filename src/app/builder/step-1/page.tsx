@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { BuilderLayout } from "@/components/layout";
 import { Button, Card } from "@/components/ui";
-import { useProfile } from "@/context/ProfileContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useResume } from "@/contexts/ResumeContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
 

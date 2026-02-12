@@ -4,6 +4,9 @@ import Stripe from 'stripe';
 import { verifyWebhookSignature } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase';
 import { logger, paymentLogger } from '@/lib/logger';
+import crypto from 'crypto';
+import { sendEmail } from '@/lib/email';
+import { PaymentSuccessEmailTemplate, PaymentFailedEmailTemplate } from '@/components/emails/templates';
 
 // Helper function to create resume for subscription
 async function createResumeForSubscription(
@@ -17,17 +20,18 @@ async function createResumeForSubscription(
             .from('users')
             .select('full_name, email')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
-        if (userFetchError || !user) {
-            paymentLogger.error('User not found for resume creation – ensure user exists in public.users', {
+        if (userFetchError) {
+            paymentLogger.error('Error fetching user for resume creation', {
                 error: userFetchError,
-                code: userFetchError?.code,
                 userId,
                 subscriptionId,
             });
-            return { success: false, error: userFetchError || new Error('User not found in public.users') };
+            return { success: false, error: userFetchError };
         }
+
+        const userName = user?.full_name || user?.email?.split('@')[0] || 'My';
 
         // Generate unique shareable link
         const shareableLink = crypto.randomUUID();
@@ -49,7 +53,7 @@ async function createResumeForSubscription(
             .from('resumes')
             .insert({
                 user_id: userId,
-                title: `${user?.full_name || 'My'} Resume`,
+                title: `${userName} Resume`,
                 status: 'paid',
                 shareable_link: shareableLink,
                 stripe_session_id: null,
@@ -83,7 +87,7 @@ async function createResumeForSubscription(
         try {
             const { generateAndUploadResumePDF } = await import('@/lib/pdf/generator');
             const { pdfUrl, error: pdfError } = await generateAndUploadResumePDF(userId);
-            
+
             if (pdfError) {
                 paymentLogger.error('PDF generation failed', {
                     error: pdfError,
@@ -95,7 +99,7 @@ async function createResumeForSubscription(
                     .from('resumes')
                     .update({ pdf_url: pdfUrl })
                     .eq('id', resume.id);
-                
+
                 paymentLogger.info('PDF generated and uploaded successfully', {
                     userId,
                     resumeId: resume.id,
@@ -189,19 +193,19 @@ export async function POST(request: NextRequest) {
                             subscriptionId: session.subscription,
                             userId,
                         });
-                        
+
                         try {
                             const stripe = (await import('@/lib/stripe')).getStripe();
                             const subscriptionObj = await stripe.subscriptions.retrieve(session.subscription as string);
-                            
+
                             const subData = subscriptionObj as unknown as Stripe.Subscription & {
                                 current_period_start: number;
                                 current_period_end: number;
                                 cancel_at_period_end: boolean | null;
                             };
-                            
-                            const customerId = typeof subData.customer === 'string' 
-                                ? subData.customer 
+
+                            const customerId = typeof subData.customer === 'string'
+                                ? subData.customer
                                 : subData.customer.id;
 
                             // Ensure user exists in public.users (FK for subscriptions/resumes) – new signups may only be in auth.users
@@ -261,7 +265,7 @@ export async function POST(request: NextRequest) {
                                     status: subscriptionObj.status,
                                 });
                             }
-                            
+
                             // Create first resume when subscription is active or trialing (new paid user)
                             const statusOk = subscriptionObj.status === 'active' || subscriptionObj.status === 'trialing';
                             if (statusOk) {
@@ -354,15 +358,17 @@ export async function POST(request: NextRequest) {
                         .from('users')
                         .select('full_name, email')
                         .eq('id', userId)
-                        .single();
+                        .maybeSingle();
 
                     if (userError) {
-                        paymentLogger.error('Failed to fetch user info', {
+                        paymentLogger.error('Failed to fetch user info in legacy block', {
                             error: userError,
                             userId,
                             sessionId: session.id,
                         });
                     }
+
+                    const legacyUserName = user?.full_name || user?.email?.split('@')[0] || 'My';
 
                     // Generate unique shareable link
                     const shareableLink = crypto.randomUUID();
@@ -384,7 +390,7 @@ export async function POST(request: NextRequest) {
                         .from('resumes')
                         .insert({
                             user_id: userId,
-                            title: `${user?.full_name || 'My'} Resume`,
+                            title: `${legacyUserName} Resume`,
                             status: 'paid',
                             shareable_link: shareableLink,
                             stripe_session_id: session.id,
@@ -720,17 +726,17 @@ export async function POST(request: NextRequest) {
                     subscription?: string | Stripe.Subscription | null;
                     customer?: string | Stripe.Customer | null;
                 };
-                
+
                 // Invoice.subscription can be a string ID or a Subscription object
                 // Use type guards to safely access properties
-                const subscriptionId = invoiceData.subscription 
-                    ? (typeof invoiceData.subscription === 'string' 
-                        ? invoiceData.subscription 
+                const subscriptionId = invoiceData.subscription
+                    ? (typeof invoiceData.subscription === 'string'
+                        ? invoiceData.subscription
                         : (invoiceData.subscription as Stripe.Subscription)?.id)
                     : null;
                 const customerId = invoiceData.customer
-                    ? (typeof invoiceData.customer === 'string' 
-                        ? invoiceData.customer 
+                    ? (typeof invoiceData.customer === 'string'
+                        ? invoiceData.customer
                         : (invoiceData.customer as Stripe.Customer)?.id)
                     : null;
 
@@ -749,6 +755,51 @@ export async function POST(request: NextRequest) {
                     });
                 }
 
+                if (invoice.amount_paid > 0 && invoice.customer_email) {
+                    try {
+                        const amount = new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: invoice.currency,
+                        }).format(invoice.amount_paid / 100);
+
+                        await sendEmail({
+                            to: invoice.customer_email,
+                            subject: 'Payment Successful - First Career Steps',
+                            html: PaymentSuccessEmailTemplate(invoice.customer_name || 'Valued Customer', amount),
+                        });
+                        paymentLogger.info('Payment success email sent', { email: invoice.customer_email, invoiceId: invoice.id });
+                    } catch (emailError) {
+                        paymentLogger.error(emailError as Error, { context: 'sendPaymentSuccessEmail', invoiceId: invoice.id });
+                    }
+                }
+
+                break;
+            }
+
+            case 'invoice.payment_failed': {
+                const invoice = event.data.object as Stripe.Invoice;
+
+                paymentLogger.info('Invoice payment failed', {
+                    invoiceId: invoice.id,
+                    customer: invoice.customer,
+                    email: invoice.customer_email
+                });
+
+                if (invoice.customer_email) {
+                    try {
+                        const { sendEmail } = await import('@/lib/email');
+                        const { PaymentFailedEmailTemplate } = await import('@/components/emails/templates');
+
+                        await sendEmail({
+                            to: invoice.customer_email,
+                            subject: 'Payment Failed - First Career Steps',
+                            html: PaymentFailedEmailTemplate(invoice.customer_name || 'Valued Customer'),
+                        });
+                        paymentLogger.info('Payment failed email sent', { email: invoice.customer_email, invoiceId: invoice.id });
+                    } catch (emailError) {
+                        paymentLogger.error(emailError as Error, { context: 'sendPaymentFailedEmail', invoiceId: invoice.id });
+                    }
+                }
                 break;
             }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { createBrowserClient } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';

@@ -7,7 +7,7 @@ import { createBrowserClient } from '@/lib/supabase';
 import Link from 'next/link';
 import LinkedInContentModal from '@/components/LinkedInContentModal';
 import type { LinkedInContent } from '@/types/linkedin';
-import { useProfile } from '@/context/ProfileContext';
+import { useProfile } from '@/contexts/ProfileContext';
 
 interface Resume {
     id: string;

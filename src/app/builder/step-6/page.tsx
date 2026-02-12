@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { BuilderLayout } from "@/components/layout";
 import { Button, Card } from "@/components/ui";
-import { useProfile } from "@/context/ProfileContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
 import { createBrowserClient } from "@/lib/supabase";

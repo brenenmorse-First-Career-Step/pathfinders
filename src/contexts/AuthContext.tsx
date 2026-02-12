@@ -105,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return { error: error.message };
             }
 
+
             if (data.user) {
                 authLogger.info('Sign up successful', {
                     userId: data.user.id,
@@ -154,7 +155,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         authLogger.error(profileError, { context: 'createProfile', userId: data.user.id });
                     }
                 }
+
+                // Send welcome email
+                try {
+                    const { sendEmail } = await import('@/lib/email');
+                    const { WelcomeEmailTemplate } = await import('@/components/emails/templates');
+
+                    await sendEmail({
+                        to: data.user.email!,
+                        subject: 'Welcome to First Career Steps!',
+                        html: WelcomeEmailTemplate(fullName),
+                    });
+                } catch (emailError) {
+                    // Log error but don't fail the signup process
+                    authLogger.error(emailError as Error, { context: 'sendWelcomeEmail', userId: data.user.id });
+                }
             }
+
 
             return { error: null };
         } catch (error) {

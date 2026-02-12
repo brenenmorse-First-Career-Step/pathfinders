@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { BuilderLayout } from "@/components/layout";
 import { Button, Input, TextArea, Select, Card } from "@/components/ui";
-import { useProfile, Experience } from "@/context/ProfileContext";
+import { useProfile, Experience } from "@/contexts/ProfileContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
 
 const EXPERIENCE_TYPES = [
