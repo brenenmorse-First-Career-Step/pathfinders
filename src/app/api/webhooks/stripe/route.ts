@@ -5,8 +5,8 @@ import { verifyWebhookSignature } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase';
 import { logger, paymentLogger } from '@/lib/logger';
 import crypto from 'crypto';
-import { sendEmail } from '@/lib/email';
-import { PaymentSuccessEmailTemplate, PaymentFailedEmailTemplate } from '@/components/emails/templates';
+// NOTE: sendEmail and email templates are imported dynamically where needed
+// to avoid crashing the entire webhook module if Resend initialization fails.
 
 // Helper function to create resume for subscription
 async function createResumeForSubscription(
