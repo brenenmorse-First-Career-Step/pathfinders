@@ -36,6 +36,7 @@ export default function Step1Page() {
 
   const [customInterest, setCustomInterest] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     setCurrentStep(1);
@@ -99,7 +100,12 @@ export default function Step1Page() {
   };
 
   const handleNext = async () => {
-    if (!isFormComplete()) return;
+    if (!isFormComplete()) {
+      setShowErrors(true);
+      // Scroll to top to show errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -154,10 +160,21 @@ export default function Step1Page() {
                 <input
                   type="text"
                   value={formData.fullName}
-                  onChange={(e) => handleInputChange("fullName", e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange("fullName", e.target.value);
+                    if (showErrors && e.target.value.trim() !== "") {
+                      // No need to clear local error state here since we just use showErrors + condition
+                    }
+                  }}
                   placeholder="Enter your full name"
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-career-blue focus:outline-none"
+                  className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none transition-colors ${showErrors && !formData.fullName.trim()
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 focus:border-career-blue"
+                    }`}
                 />
+                {showErrors && !formData.fullName.trim() && (
+                  <p className="mt-1 text-sm text-red-600 font-medium">Please enter your full name to continue.</p>
+                )}
               </div>
 
               {/* Phone Number */}
@@ -212,8 +229,14 @@ export default function Step1Page() {
                   value={formData.highSchool}
                   onChange={(e) => handleInputChange("highSchool", e.target.value)}
                   placeholder="Enter your school name"
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-career-blue focus:outline-none"
+                  className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none transition-colors ${showErrors && !formData.highSchool.trim()
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 focus:border-career-blue"
+                    }`}
                 />
+                {showErrors && !formData.highSchool.trim() && (
+                  <p className="mt-1 text-sm text-red-600 font-medium">Please enter your school name.</p>
+                )}
               </div>
 
               {/* Graduation Year */}
@@ -224,13 +247,19 @@ export default function Step1Page() {
                 <select
                   value={formData.graduationYear}
                   onChange={(e) => handleInputChange("graduationYear", e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-career-blue focus:outline-none"
+                  className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none transition-colors ${showErrors && !formData.graduationYear
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 focus:border-career-blue"
+                    }`}
                 >
                   <option value="">Select year</option>
                   {GRADUATION_YEARS.map(year => (
                     <option key={year} value={year}>{year}</option>
                   ))}
                 </select>
+                {showErrors && !formData.graduationYear && (
+                  <p className="mt-1 text-sm text-red-600 font-medium">Please select your graduation year.</p>
+                )}
               </div>
 
               {/* Interests */}
@@ -306,6 +335,9 @@ export default function Step1Page() {
                         ))}
                     </div>
                   </div>
+                )}
+                {showErrors && formData.interests.length === 0 && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">Please select at least one interest.</p>
                 )}
               </div>
             </div>
