@@ -371,32 +371,7 @@ export default function HomePage() {
       <footer className="bg-charcoal text-white py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           {/* Footer Navigation */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 mb-8">
-            <Link
-              href="/"
-              className="text-sm font-semibold text-white hover:text-career-blue-light transition-colors uppercase tracking-wide"
-            >
-              Home
-            </Link>
-            <Link
-              href="/linkedin-builder"
-              className="text-sm font-semibold text-white hover:text-career-blue-light transition-colors uppercase tracking-wide"
-            >
-              LinkedIn Build
-            </Link>
-            <Link
-              href="/resume-builder"
-              className="text-sm font-semibold text-white hover:text-career-blue-light transition-colors uppercase tracking-wide"
-            >
-              Resume Build
-            </Link>
-            <Link
-              href="/career-roadmap"
-              className="text-sm font-semibold text-white hover:text-career-blue-light transition-colors uppercase tracking-wide"
-            >
-              Career Roadmap
-            </Link>
-          </div>
+          {/* Internal navigation removed as requested */}
 
           {/* Divider */}
           <div className="border-t border-gray-700 my-8" />
