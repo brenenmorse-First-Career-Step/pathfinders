@@ -11,8 +11,9 @@ import { logger } from '@/lib/logger';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn } = useAuth();
+  const { signIn, resetPasswordForEmail } = useAuth();
 
+  const [mode, setMode] = useState<'login' | 'forgot'>('login');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -21,6 +22,7 @@ function LoginContent() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -32,8 +34,8 @@ function LoginContent() {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    // Password validation
-    if (!formData.password) {
+    // Password validation only needed in login mode
+    if (mode === 'login' && !formData.password) {
       newErrors.password = 'Password is required';
     }
 
@@ -41,21 +43,7 @@ function LoginContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setServerError('');
-
-    logger.info('Login Form', 'Form submission started', {
-      email: formData.email,
-    });
-
-    if (!validateForm()) {
-      logger.warn('Login Form', 'Validation failed', { errors });
-      return;
-    }
-
-    setLoading(true);
-
+  const handleLogin = async () => {
     try {
       const { error } = await signIn(formData.email, formData.password);
 
@@ -70,11 +58,7 @@ function LoginContent() {
         email: formData.email,
       });
 
-      // Get redirect destination from query params or default to dashboard
       const redirectTo = searchParams.get('redirect') || '/dashboard';
-
-      // IMPORTANT: use a hard navigation so middleware definitely sees fresh auth cookies
-      // (prevents "login loop" on live deployments).
       window.location.assign(redirectTo);
     } catch (error) {
       logger.error('Login Form', error as Error, { email: formData.email });
@@ -83,16 +67,56 @@ function LoginContent() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    try {
+      const { error } = await resetPasswordForEmail(formData.email);
+
+      if (error) {
+        logger.error('Forgot Password', error, { email: formData.email });
+        setServerError(error);
+        setLoading(false);
+        return;
+      }
+
+      logger.info('Forgot Password', 'Reset email sent', {
+        email: formData.email,
+      });
+
+      setSuccessMessage('Password reset link has been sent to your email.');
+      setLoading(false);
+    } catch (error) {
+      logger.error('Forgot Password', error as Error, { email: formData.email });
+      setServerError('An unexpected error occurred. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setServerError('');
+    setSuccessMessage('');
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+
+    if (mode === 'login') {
+      await handleLogin();
+    } else {
+      await handleForgotPassword();
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
 
-    // Clear server error when user makes changes
     if (serverError) {
       setServerError('');
     }
@@ -106,15 +130,23 @@ function LoginContent() {
         <div className="max-w-md mx-auto w-full">
           <div className="bg-white rounded-2xl p-8 shadow-card">
             <h1 className="text-3xl font-poppins font-bold text-charcoal mb-2 text-center">
-              Welcome Back
+              {mode === 'login' ? 'Welcome Back' : 'Reset Password'}
             </h1>
             <p className="text-gray-600 text-center mb-8">
-              Sign in to continue building your resume
+              {mode === 'login'
+                ? 'Sign in to continue building your resume'
+                : 'Enter your email to receive a reset link'}
             </p>
 
             {serverError && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-red-600 text-sm">{serverError}</p>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+                <p className="text-green-600 text-sm">{successMessage}</p>
               </div>
             )}
 
@@ -143,29 +175,44 @@ function LoginContent() {
                 )}
               </div>
 
-              {/* Password */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-semibold text-charcoal mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.password
-                    ? 'border-red-300 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-career-blue'
-                    }`}
-                  placeholder="••••••••"
-                  disabled={loading}
-                  autoComplete="current-password"
-                />
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                )}
-              </div>
+              {/* Password - only show in login mode */}
+              {mode === 'login' && (
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label htmlFor="password" className="block text-sm font-semibold text-charcoal">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('forgot');
+                        setErrors({});
+                        setServerError('');
+                      }}
+                      className="text-xs text-career-blue hover:underline font-medium"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${errors.password
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-career-blue'
+                      }`}
+                    placeholder="••••••••"
+                    disabled={loading}
+                    autoComplete="current-password"
+                  />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  )}
+                </div>
+              )}
 
               {/* Submit Button */}
               <button
@@ -173,16 +220,33 @@ function LoginContent() {
                 disabled={loading}
                 className="w-full px-6 py-3 bg-career-blue text-white font-semibold rounded-xl hover:bg-career-blue-dark transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
               >
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading
+                  ? (mode === 'login' ? 'Signing In...' : 'Sending...')
+                  : (mode === 'login' ? 'Sign In' : 'Send Reset Link')}
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-career-blue font-semibold hover:underline">
-                Create Account
-              </Link>
-            </p>
+            <div className="mt-6 text-center text-sm text-gray-600">
+              {mode === 'forgot' ? (
+                <button
+                  onClick={() => {
+                    setMode('login');
+                    setErrors({});
+                    setServerError('');
+                  }}
+                  className="text-career-blue font-semibold hover:underline"
+                >
+                  Back to Sign In
+                </button>
+              ) : (
+                <>
+                  Don&apos;t have an account?{' '}
+                  <Link href="/signup" className="text-career-blue font-semibold hover:underline">
+                    Create Account
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </main>

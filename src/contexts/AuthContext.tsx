@@ -12,6 +12,8 @@ interface AuthContextType {
     signUp: (email: string, password: string, fullName: string, linkedinLink?: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
     signIn: (email: string, password: string) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
+    resetPasswordForEmail: (email: string) => Promise<{ error: string | null }>;
+    updatePassword: (password: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -245,6 +247,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const resetPasswordForEmail = async (email: string): Promise<{ error: string | null }> => {
+        try {
+            authLogger.info('Reset password request', { email });
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`,
+            });
+            if (error) {
+                authLogger.error(error, { context: 'resetPassword', email });
+                return { error: error.message };
+            }
+            return { error: null };
+        } catch (error) {
+            authLogger.error(error as Error, { context: 'resetPassword', email });
+            return { error: 'An unexpected error occurred.' };
+        }
+    };
+
+    const updatePassword = async (password: string): Promise<{ error: string | null }> => {
+        try {
+            authLogger.info('Update password request');
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) {
+                authLogger.error(error, { context: 'updatePassword' });
+                return { error: error.message };
+            }
+            return { error: null };
+        } catch (error) {
+            authLogger.error(error as Error, { context: 'updatePassword' });
+            return { error: 'An unexpected error occurred.' };
+        }
+    };
+
     const value = {
         user,
         session,
@@ -252,6 +286,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signIn,
         signOut,
+        resetPasswordForEmail,
+        updatePassword,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
