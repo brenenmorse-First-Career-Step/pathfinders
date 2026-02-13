@@ -68,7 +68,7 @@ export async function POST(_request: NextRequest) {
         if (hasSubscription) {
             // User has active subscription - create resume directly without payment
             const adminSupabase = createAdminClient();
-            
+
             // Fetch user's basic info
             const { data: userData } = await adminSupabase
                 .from('users')
@@ -91,12 +91,14 @@ export async function POST(_request: NextRequest) {
                 ? (existingResumes[0].version || 0) + 1
                 : 1;
 
+            const userName = userData?.full_name || (userData?.email ? userData.email.split('@')[0].charAt(0).toUpperCase() + userData.email.split('@')[0].slice(1) : 'My');
+
             // Create resume record with status 'paid' (subscription active)
             const { data: resume, error: resumeError } = await adminSupabase
                 .from('resumes')
                 .insert({
                     user_id: user.id,
-                    title: `${userData?.full_name || 'My'} Resume`,
+                    title: `${userName} Resume`,
                     status: 'paid',
                     shareable_link: shareableLink,
                     stripe_session_id: null, // No session for subscription-based creation

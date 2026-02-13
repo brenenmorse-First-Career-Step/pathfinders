@@ -211,13 +211,17 @@ export async function POST(request: NextRequest) {
                             // Ensure user exists in public.users (FK for subscriptions/resumes) – new signups may only be in auth.users
                             const customer = await stripe.customers.retrieve(customerId);
                             if (!customer.deleted && 'email' in customer && customer.email) {
+                                const customerEmail = customer.email;
+                                const emailPrefix = customerEmail.split('@')[0];
+                                const fallbackName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+
                                 const { error: userUpsertError } = await supabase
                                     .from('users')
                                     .upsert(
                                         {
                                             id: userId,
-                                            email: customer.email,
-                                            full_name: (customer as { name?: string }).name ?? null,
+                                            email: customerEmail,
+                                            full_name: (customer as { name?: string }).name || fallbackName,
                                         },
                                         { onConflict: 'id' }
                                     );
