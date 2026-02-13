@@ -9,7 +9,7 @@ interface AuthContextType {
     user: User | null;
     session: Session | null;
     loading: boolean;
-    signUp: (email: string, password: string, fullName: string, linkedinLink?: string) => Promise<{ error: string | null }>;
+    signUp: (email: string, password: string, fullName: string, linkedinLink?: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
     signIn: (email: string, password: string) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
 }
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password: string,
         fullName: string,
         linkedinLink?: string
-    ): Promise<{ error: string | null }> => {
+    ): Promise<{ error: string | null; needsConfirmation?: boolean }> => {
         try {
             authLogger.info('Sign up attempt', { email, hasLinkedin: !!linkedinLink });
 
@@ -98,12 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (error) {
                 authLogger.error(error, { context: 'signUp', email });
 
-                if (error.message.includes('User already registered')) {
+                if (error.message.includes('User already registered') || (error.status === 400 && error.message.includes('already been registered'))) {
                     return { error: 'An account with this email already exists.' };
                 }
 
                 return { error: error.message };
             }
+
+            const needsConfirmation = !data.session;
 
 
             if (data.user) {
@@ -173,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
 
-            return { error: null };
+            return { error: null, needsConfirmation };
         } catch (error) {
             authLogger.error(error as Error, { context: 'signUp', email });
             return { error: 'An unexpected error occurred. Please try again.' };
