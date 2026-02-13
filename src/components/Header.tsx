@@ -40,27 +40,7 @@ export default function Header() {
                         />
                     </Link>
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-8">
-                        <Link
-                            href="/"
-                            className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide"
-                        >
-                            Home
-                        </Link>
-                        <Link
-                            href="/builder/step-1"
-                            className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide"
-                        >
-                            Builder
-                        </Link>
-                        <Link
-                            href="/career-roadmap"
-                            className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide"
-                        >
-                            Career Roadmap
-                        </Link>
-                    </nav>
+
 
                     <div className="flex items-center gap-4">
                         {loading ? (
@@ -122,19 +102,7 @@ export default function Header() {
 
                 {/* Mobile Navigation */}
                 <nav className={`md:hidden mt-4 pt-4 border-t border-gray-100 flex flex-col gap-3 transition-all duration-300 ${isMenuOpen ? 'block' : 'hidden'}`}>
-                    <Link
-                        href="/"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2"
-                    >
-                        Home
-                    </Link>
-                    <Link href="/builder/step-1" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
-                        Builder
-                    </Link>
-                    <Link href="/career-roadmap" className="text-sm font-semibold text-charcoal hover:text-career-blue transition-colors uppercase tracking-wide py-2">
-                        Career Roadmap
-                    </Link>
+
                     {user ? (
                         <>
                             <Link
