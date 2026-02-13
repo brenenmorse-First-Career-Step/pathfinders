@@ -124,6 +124,39 @@ async function createResumeForSubscription(
     }
 }
 
+// Helper function to ensure user exists in public.users
+async function ensureUserExists(
+    supabase: ReturnType<typeof createAdminClient>,
+    userId: string,
+    email: string,
+    name?: string | null
+) {
+    const emailPrefix = email.split('@')[0];
+    const fallbackName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+
+    const { error } = await supabase
+        .from('users')
+        .upsert(
+            {
+                id: userId,
+                email: email,
+                full_name: name || fallbackName,
+            },
+            { onConflict: 'id' }
+        );
+
+    if (error) {
+        paymentLogger.error('Failed to ensure user in public.users', {
+            error,
+            userId,
+            email,
+            providedName: name,
+            fallbackName,
+        });
+        throw error;
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Get the raw body
@@ -211,29 +244,7 @@ export async function POST(request: NextRequest) {
                             // Ensure user exists in public.users (FK for subscriptions/resumes) – new signups may only be in auth.users
                             const customer = await stripe.customers.retrieve(customerId);
                             if (!customer.deleted && 'email' in customer && customer.email) {
-                                const customerEmail = customer.email;
-                                const emailPrefix = customerEmail.split('@')[0];
-                                const fallbackName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
-
-                                const { error: userUpsertError } = await supabase
-                                    .from('users')
-                                    .upsert(
-                                        {
-                                            id: userId,
-                                            email: customerEmail,
-                                            full_name: (customer as { name?: string }).name || fallbackName,
-                                        },
-                                        { onConflict: 'id' }
-                                    );
-                                if (userUpsertError) {
-                                    paymentLogger.error('Failed to ensure user in public.users', {
-                                        error: userUpsertError,
-                                        code: userUpsertError.code,
-                                        details: userUpsertError.details,
-                                        userId,
-                                    });
-                                    throw userUpsertError;
-                                }
+                                await ensureUserExists(supabase, userId, customer.email, (customer as Stripe.Customer).name);
                             }
 
                             // Create subscription record
@@ -538,27 +549,8 @@ export async function POST(request: NextRequest) {
 
                     // Ensure user exists in public.users (FK for subscriptions/resumes) – required before subscription upsert
                     const customerEmail = typeof customer.email === 'string' ? customer.email : null;
-                    const customerName = (customer as { name?: string }).name ?? null;
                     if (customerEmail) {
-                        const { error: userUpsertError } = await supabase
-                            .from('users')
-                            .upsert(
-                                {
-                                    id: userId,
-                                    email: customerEmail,
-                                    full_name: customerName,
-                                },
-                                { onConflict: 'id' }
-                            );
-                        if (userUpsertError) {
-                            paymentLogger.error('Failed to ensure user in public.users (subscription event)', {
-                                error: userUpsertError,
-                                code: userUpsertError.code,
-                                details: userUpsertError.details,
-                                userId,
-                            });
-                            throw userUpsertError;
-                        }
+                        await ensureUserExists(supabase, userId, customerEmail, customer.name);
                     }
 
                     // Fetch full subscription so we always have current_period_* (event object can be minimal)
@@ -629,17 +621,7 @@ export async function POST(request: NextRequest) {
                                 }
                             })());
                             if (emailToUse) {
-                                const { error: upsertErr } = await supabase
-                                    .from('users')
-                                    .upsert({ id: userId, email: emailToUse, full_name: customerName }, { onConflict: 'id' });
-                                if (upsertErr) {
-                                    paymentLogger.error('Failed to ensure user before resume creation', {
-                                        error: upsertErr,
-                                        userId,
-                                        subscriptionId: subscription.id,
-                                    });
-                                    throw upsertErr;
-                                }
+                                await ensureUserExists(supabase, userId, emailToUse, customer?.name);
                             }
                         }
 
