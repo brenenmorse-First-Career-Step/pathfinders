@@ -112,6 +112,14 @@ export async function GET() {
             .limit(5);
         results.recent_subscriptions = subListErr ? { error: subListErr.message } : allSubs;
 
+        // List recent debug logs
+        const { data: debugLogs, error: logErr } = await supabase
+            .from('debug_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(20);
+        results.debug_logs = logErr ? { error: logErr.message } : debugLogs;
+
     } catch (dbError) {
         results.db_error = (dbError as Error).message;
     }

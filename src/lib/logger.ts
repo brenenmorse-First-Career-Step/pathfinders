@@ -21,9 +21,34 @@ class Logger {
         };
     }
 
+    // Log to database for production debugging
+    private logToDb(level: LogLevel, category: string, message: string, context?: LogContext) {
+        // Only log to DB in production or if explicitly enabled
+        if (process.env.NODE_ENV !== 'production' && !process.env.DEBUG_DB_LOGGING) return;
+
+        // Use dynamic import to avoid circular dependencies and only if we have the service role key
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+
+        import('@/lib/supabase')
+            .then(({ createAdminClient }) => {
+                const supabase = createAdminClient();
+                return supabase.from('debug_logs').insert({
+                    level,
+                    category,
+                    message,
+                    context: context || null,
+                });
+            })
+            .catch(() => {
+                // Silently ignore logging errors in production
+            });
+    }
+
     info(category: string, message: string, context?: LogContext) {
         const formatted = this.formatMessage('info', category, message, context);
         console.log(`[${formatted.level.toUpperCase()}] [${category}]:`, message, context || '');
+
+        this.logToDb('info', category, message, context);
 
         if (this.isDevelopment) {
             console.log('Full context:', formatted);
@@ -33,6 +58,8 @@ class Logger {
     warn(category: string, message: string, context?: LogContext) {
         const formatted = this.formatMessage('warn', category, message, context);
         console.warn(`[${formatted.level.toUpperCase()}] [${category}]:`, message, context || '');
+
+        this.logToDb('warn', category, message, context);
 
         if (this.isDevelopment) {
             console.warn('Full context:', formatted);
@@ -49,6 +76,12 @@ class Logger {
 
         console.error(`[${formatted.level.toUpperCase()}] [${category}]:`, message);
         console.error('Error details:', formatted);
+
+        this.logToDb('error', category, message, {
+            ...context,
+            stack: error instanceof Error ? error.stack : undefined,
+            name: error instanceof Error ? error.name : undefined,
+        });
     }
 
     debug(category: string, message: string, context?: LogContext) {
