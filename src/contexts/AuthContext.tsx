@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         full_name: fullName,
                         linkedin_link: linkedinLink || null,
                     },
+                    emailRedirectTo: `${window.location.origin}/builder/step-1`,
                 },
             });
 
@@ -161,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 // Send welcome email via API route to avoid bundling server-side code in the browser
+                /* Temporarily disabled due to DNS issues
                 try {
                     await fetch('/api/auth/send-welcome-email', {
                         method: 'POST',
@@ -174,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // Log error but don't fail the signup process
                     authLogger.error(emailError as Error, { context: 'sendWelcomeEmail', userId: data.user.id });
                 }
+                */
             }
 
 

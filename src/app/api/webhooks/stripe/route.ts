@@ -766,12 +766,14 @@ export async function POST(request: NextRequest) {
                             currency: invoice.currency,
                         }).format(invoice.amount_paid / 100);
 
-                        await sendEmail({
-                            to: invoice.customer_email,
-                            subject: 'Payment Successful - First Career Steps',
-                            html: PaymentSuccessEmailTemplate(invoice.customer_name || 'Valued Customer', amount),
-                        });
-                        paymentLogger.info('Payment success email sent', { email: invoice.customer_email, invoiceId: invoice.id });
+                        /* Temporarily disabled due to DNS issues
+                                                await sendEmail({
+                                                    to: invoice.customer_email,
+                                                    subject: 'Payment Successful - First Career Steps',
+                                                    html: PaymentSuccessEmailTemplate(invoice.customer_name || 'Valued Customer', amount),
+                                                });
+                                                paymentLogger.info('Payment success email sent', { email: invoice.customer_email, invoiceId: invoice.id });
+                        */
                     } catch (emailError) {
                         paymentLogger.error(emailError as Error, { context: 'sendPaymentSuccessEmail', invoiceId: invoice.id });
                     }
@@ -794,12 +796,14 @@ export async function POST(request: NextRequest) {
                         const { sendEmail } = await import('@/lib/email');
                         const { PaymentFailedEmailTemplate } = await import('@/components/emails/templates');
 
-                        await sendEmail({
-                            to: invoice.customer_email,
-                            subject: 'Payment Failed - First Career Steps',
-                            html: PaymentFailedEmailTemplate(invoice.customer_name || 'Valued Customer'),
-                        });
-                        paymentLogger.info('Payment failed email sent', { email: invoice.customer_email, invoiceId: invoice.id });
+                        /* Temporarily disabled due to DNS issues
+                                                await sendEmail({
+                                                    to: invoice.customer_email,
+                                                    subject: 'Payment Failed - First Career Steps',
+                                                    html: PaymentFailedEmailTemplate(invoice.customer_name || 'Valued Customer'),
+                                                });
+                                                paymentLogger.info('Payment failed email sent', { email: invoice.customer_email, invoiceId: invoice.id });
+                        */
                     } catch (emailError) {
                         paymentLogger.error(emailError as Error, { context: 'sendPaymentFailedEmail', invoiceId: invoice.id });
                     }
