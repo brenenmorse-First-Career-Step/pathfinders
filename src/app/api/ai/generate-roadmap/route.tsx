@@ -631,7 +631,10 @@ async function generateMilestoneRoadmapImage(
                         const textWidth = stride * 1.2;
 
                         return (
-                            <div key={step.number}>
+                            <div
+                                key={step.number}
+                                style={{ display: 'flex' }}
+                            >
                                 {/* Step Number - Above Line */}
                                 <div
                                     style={{
