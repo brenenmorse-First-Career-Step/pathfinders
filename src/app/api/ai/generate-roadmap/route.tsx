@@ -48,8 +48,8 @@ Create a detailed career roadmap including:
    - Make sure no link repeats
 4. A step-by-step plan (6-10 steps depending on the career). For each step:
    - Step number
-   - Title
-   - Detailed description
+   - Title (MAXIMUM 2 WORDS, e.g., "MASTER REACT" or "LEARN PYTHON")
+   - Detailed description (KEEP IT SHORT, 5-7 words maximum)
    - 1-3 relevant hashtags
 5. Estimated learning timeline (e.g., "6-12 months" or "1-2 years")
 6. Suggested starter projects to build experience (list 3-5 projects)
@@ -467,16 +467,16 @@ async function generateMilestoneRoadmapImage(
     ];
 
     // Scaling constants for the 1792x1024 canvas
-    const padding = 120;
-    const startX = 150; // Increased to give more room on left
-    const stride = (width - padding * 2 - 200) / (steps.length || 1);
-    const stepHeight = (height - padding * 3 - 200) / (steps.length || 1);
-    const cornerRadius = 40;
-    const strokeWidth = 14;
-    const horizontalSegmentLength = stride * 0.6; // Reduced to give more room for vertical transition
+    const padding = 100;
+    const startX = 120;
+    const stride = (width - padding * 4) / (steps.length || 1);
+    const stepHeight = (height - padding * 5) / (steps.length || 1);
+    const cornerRadius = 50;
+    const strokeWidth = 18;
+    const horizontalSegmentLength = stride * 0.65;
 
     // We start from the bottom-left
-    const startY = height - 120;
+    const startY = height - 150;
 
     const getStepColor = (index: number) => COLORS[index % COLORS.length];
 
