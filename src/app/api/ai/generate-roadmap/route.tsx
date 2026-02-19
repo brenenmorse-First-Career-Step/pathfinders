@@ -467,19 +467,16 @@ async function generateMilestoneRoadmapImage(
     ];
 
     // Scaling constants for the 1792x1024 canvas
-    // newcode.tsx used stride=300, stepHeight=140 for a dynamic width.
-    // For 7 steps, we'll use a stride that fits 1792px.
-    const padding = 100;
-    const startX = 100;
-    const stride = (width - padding * 3) / (steps.length || 1);
-    const stepHeight = (height - padding * 4) / (steps.length || 1);
+    const padding = 120;
+    const startX = 150; // Increased to give more room on left
+    const stride = (width - padding * 2 - 200) / (steps.length || 1);
+    const stepHeight = (height - padding * 3 - 200) / (steps.length || 1);
     const cornerRadius = 40;
     const strokeWidth = 14;
-    const horizontalSegmentLength = stride * 0.7;
+    const horizontalSegmentLength = stride * 0.6; // Reduced to give more room for vertical transition
 
     // We start from the bottom-left
-    const totalHeight = steps.length * stepHeight + padding * 2;
-    const startY = height - 150;
+    const startY = height - 120;
 
     const getStepColor = (index: number) => COLORS[index % COLORS.length];
 
@@ -556,13 +553,13 @@ async function generateMilestoneRoadmapImage(
                                             fill="none"
                                         />
                                         <path
-                                            d={`M ${currentX + horizontalSegmentLength} ${currentY} Q ${currentX + horizontalSegmentLength + cornerRadius} ${currentY} ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 30}`}
+                                            d={`M ${currentX + horizontalSegmentLength} ${currentY} Q ${currentX + horizontalSegmentLength + cornerRadius} ${currentY} ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 100}`}
                                             stroke={color.hex}
                                             strokeWidth={strokeWidth}
                                             fill="none"
                                         />
                                         <path
-                                            d={`M ${currentX + horizontalSegmentLength + cornerRadius - 20} ${currentY - cornerRadius - 25} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 60} L ${currentX + horizontalSegmentLength + cornerRadius + 20} ${currentY - cornerRadius - 25} Z`}
+                                            d={`M ${currentX + horizontalSegmentLength + cornerRadius - 20} ${currentY - cornerRadius - 95} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 130} L ${currentX + horizontalSegmentLength + cornerRadius + 20} ${currentY - cornerRadius - 95} Z`}
                                             fill={color.hex}
                                         />
                                     </g>
@@ -628,65 +625,83 @@ async function generateMilestoneRoadmapImage(
                         const color = getStepColor(index);
                         const currentX = startX + index * stride;
                         const currentY = startY - index * stepHeight - 200;
-                        const textWidth = stride * 1.2;
+                        const textWidth = stride * 1.1;
+
+                        const titleLines = wrapText(step.title, textWidth, 22);
+                        const descLines = wrapText(step.description, textWidth, 14).slice(0, 3);
 
                         return (
                             <div
                                 key={step.number}
-                                style={{ display: 'flex' }}
+                                style={{
+                                    position: 'absolute',
+                                    left: currentX,
+                                    top: currentY - 140, // Positioned above the step line
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    width: `${textWidth}px`,
+                                    paddingLeft: '10px',
+                                }}
                             >
-                                {/* Step Number - Above Line */}
+                                {/* Step Number */}
                                 <div
                                     style={{
-                                        position: 'absolute',
-                                        left: currentX,
-                                        top: currentY - 50,
-                                        width: `${textWidth}px`,
                                         color: color.hex,
                                         fontWeight: 'bold',
-                                        fontSize: '24px',
+                                        fontSize: '16px',
                                         textTransform: 'uppercase',
+                                        marginBottom: '2px',
                                         display: 'flex',
-                                        paddingLeft: '20px',
                                     }}
                                 >
                                     Step {String(step.number).padStart(2, '0')}
                                 </div>
 
-                                {/* Title & Desc - Below Line */}
+                                {/* Title */}
                                 <div
                                     style={{
-                                        position: 'absolute',
-                                        left: currentX,
-                                        top: currentY + 20,
-                                        width: `${textWidth}px`,
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        paddingLeft: '20px',
+                                        marginBottom: '4px',
                                     }}
                                 >
-                                    <h3
-                                        style={{
-                                            fontSize: '28px',
-                                            fontWeight: 'bold',
-                                            margin: '0 0 8px 0',
-                                            textTransform: 'uppercase',
-                                            color: color.hex,
-                                            display: 'flex',
-                                        }}
-                                    >
-                                        {step.title}
-                                    </h3>
-                                    <p
-                                        style={{
-                                            fontSize: '20px',
-                                            color: '#666666',
-                                            margin: 0,
-                                            display: 'flex',
-                                        }}
-                                    >
-                                        {step.description}
-                                    </p>
+                                    {titleLines.map((line, lIdx) => (
+                                        <div
+                                            key={lIdx}
+                                            style={{
+                                                fontSize: '18px',
+                                                fontWeight: 'bold',
+                                                textTransform: 'uppercase',
+                                                color: color.hex,
+                                                lineHeight: '1.1',
+                                                display: 'flex',
+                                            }}
+                                        >
+                                            {line}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Description */}
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                    }}
+                                >
+                                    {descLines.map((line, lIdx) => (
+                                        <div
+                                            key={lIdx}
+                                            style={{
+                                                fontSize: '12px',
+                                                color: '#666666',
+                                                lineHeight: '1.2',
+                                                display: 'flex',
+                                            }}
+                                        >
+                                            {line}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         );
