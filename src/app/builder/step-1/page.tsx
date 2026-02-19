@@ -15,7 +15,7 @@ const INTERESTS_OPTIONS = [
   "Healthcare", "Education", "Engineering", "Environment", "Other"
 ];
 
-const GRADUATION_YEARS = Array.from({ length: 11 }, (_, i) => (2020 + i).toString());
+const GRADUATION_YEARS = Array.from({ length: 81 }, (_, i) => (1970 + i).toString());
 
 export default function Step1Page() {
   const router = useRouter();
