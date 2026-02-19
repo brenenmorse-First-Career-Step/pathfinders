@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     },
     // Header
     header: {
-        marginBottom: 15,
+        marginBottom: 0,
         borderBottom: '1.5pt solid #000',
         paddingBottom: 10,
         textAlign: 'center',
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 4,
+        marginBottom: 12,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
@@ -51,9 +51,11 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         textTransform: 'uppercase',
-        marginBottom: 6,
+        marginTop: 0,
+        paddingTop: 8,
+        paddingBottom: 8,
+        marginBottom: 10,
         borderBottom: '1pt solid #000',
-        paddingBottom: 2,
         letterSpacing: 0.5,
     },
     // About
