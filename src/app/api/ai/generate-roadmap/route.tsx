@@ -118,7 +118,7 @@ Return ONLY a valid JSON object with this exact structure:
 
         // Generate roadmap images using Canvas
         console.log('Creating infographic with Canvas...');
-        
+
         // Create structured roadmap data
         const roadmapStructure = {
             careerName: roadmapData.careerName,
@@ -128,13 +128,13 @@ Return ONLY a valid JSON object with this exact structure:
                 title: step.title
             }))
         };
-        
+
         // Generate infographic using Canvas
         const infographicBuffer = await generateInfographicImage(
             roadmapStructure.careerName,
             roadmapStructure.steps
         );
-        
+
         // Upload the infographic
         const infographicUrl = await uploadImageToStorage(
             infographicBuffer,
@@ -143,19 +143,19 @@ Return ONLY a valid JSON object with this exact structure:
         );
 
         console.log('Creating milestone roadmap with Canvas...');
-        
+
         // Generate milestone roadmap using Canvas with descriptions
         const milestoneSteps = roadmapData.steps.map(step => ({
             number: step.step,
             title: step.title,
             description: step.description
         }));
-        
+
         const milestoneBuffer = await generateMilestoneRoadmapImage(
             roadmapStructure.careerName,
             milestoneSteps
         );
-        
+
         // Upload the milestone roadmap
         const milestoneRoadmapUrl = await uploadImageToStorage(
             milestoneBuffer,
@@ -218,7 +218,7 @@ async function generateInfographicImage(
 ): Promise<Buffer> {
     const width = 1792;
     const height = 1024;
-    
+
     // Calculate spacing for arrow boxes
     const margin = 120;
     const availableWidth = width - (margin * 2);
@@ -349,7 +349,7 @@ async function generateInfographicImage(
                                                 {step.number}
                                             </span>
                                         </div>
-                                        
+
                                         {/* Arrow point (triangle shape using border) */}
                                         {index < steps.length - 1 && (
                                             <div
@@ -458,44 +458,30 @@ async function generateMilestoneRoadmapImage(
     const width = 1792;
     const height = 1024;
 
-    // Theme colors from TSX component: Orange (#F39200), Blue (#0072BC), Green (#39B54A), Red (#ED1C24)
-    const themeColors = {
-        orange: "#F39200",
-        blue: "#0072BC",
-        green: "#39B54A",
-        red: "#ED1C24",
-        charcoal: "#263238",
-        gray: "#6B7280",
-    };
+    // Brand colors from newcode.tsx
+    const COLORS = [
+        { name: 'orange', hex: '#F59E0B' }, // text-amber-500
+        { name: 'blue', hex: '#3B82F6' },   // text-blue-500
+        { name: 'green', hex: '#22C55E' },  // text-green-500
+        { name: 'red', hex: '#EF4444' },    // text-red-500
+    ];
 
-    // SVG Path Constants (matching TSX component, scaled for canvas)
-    // Original TSX: stepWidth=120, stepHeight=80, startX=50, startY=750, viewBox="0 0 1100 850"
-    // Scale factor: canvas is 1792x1024, adjust to fit content properly
-    const padding = 60;
-    const headerHeight = 80; // Reduced header height
-    const availableHeight = height - padding * 2 - headerHeight;
-    const availableWidth = width - padding * 2;
-    
-    // Use a more conservative scale to ensure content fits
-    const scaleX = availableWidth / 1100; // ~1.52
-    const scaleY = availableHeight / 850; // ~1.06
-    const stepWidth = 120 * scaleX;
-    const stepHeight = 80 * scaleY;
-    const startX = 50 * scaleX;
-    // Calculate startY: position steps to leave room for text below
-    // Leave space for step number above, heading and description below
-    const stepNumberSpace = 30 * scaleY; // Space above line for step numbers
-    const textSpace = 180 * scaleY; // Increased space below line for heading + description + bottom padding
-    const startY = availableHeight - textSpace;
+    // Scaling constants for the 1792x1024 canvas
+    // newcode.tsx used stride=300, stepHeight=140 for a dynamic width.
+    // For 7 steps, we'll use a stride that fits 1792px.
+    const padding = 100;
+    const startX = 100;
+    const stride = (width - padding * 3) / (steps.length || 1);
+    const stepHeight = (height - padding * 4) / (steps.length || 1);
+    const cornerRadius = 40;
+    const strokeWidth = 14;
+    const horizontalSegmentLength = stride * 0.7;
 
-    // Get step color based on 4-color cycle
-    const getStepColor = (index: number) => {
-        const colorIndex = index % 4;
-        if (colorIndex === 0) return themeColors.orange;
-        if (colorIndex === 1) return themeColors.blue;
-        if (colorIndex === 2) return themeColors.green;
-        return themeColors.red;
-    };
+    // We start from the bottom-left
+    const totalHeight = steps.length * stepHeight + padding * 2;
+    const startY = height - 150;
+
+    const getStepColor = (index: number) => COLORS[index % COLORS.length];
 
     const imageResponse = new ImageResponse(
         (
@@ -509,35 +495,37 @@ async function generateMilestoneRoadmapImage(
                     padding: '60px 80px',
                 }}
             >
-                {/* Header Section - Simple Title Only */}
+                {/* Header Section */}
                 <div
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
-                        marginBottom: '5px',
+                        marginBottom: '40px',
                     }}
                 >
                     <h1
                         style={{
-                            fontSize: '64px',
+                            fontSize: '72px',
                             fontWeight: 'bold',
-                            color: themeColors.charcoal,
+                            color: '#263238',
                             textAlign: 'center',
                             display: 'flex',
+                            textTransform: 'uppercase',
+                            letterSpacing: '2px',
                         }}
                     >
                         Milestone Roadmap
                     </h1>
                 </div>
 
-                {/* Timeline Container with SVG */}
+                {/* Timeline Container */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
                         flex: 1,
                         display: 'flex',
-                        minHeight: '900px',
+                        minHeight: '800px',
                     }}
                 >
                     {/* SVG Path Container */}
@@ -549,153 +537,152 @@ async function generateMilestoneRoadmapImage(
                             width: '100%',
                             height: '100%',
                         }}
-                        viewBox={`0 0 ${1100 * scaleX} ${availableHeight}`}
+                        viewBox={`0 0 ${width} ${height - 200}`}
                     >
-                        {/* Dynamic Path Generation for Steps */}
-                        {steps.map((step, index) => {
-                            const stepColor = getStepColor(index);
-                            const strokeWidth = 20 * Math.min(scaleX, scaleY);
-                            
+                        {steps.map((_, index) => {
+                            const currentX = startX + index * stride;
+                            const currentY = startY - index * stepHeight - 200; // Adjusted for header
+                            const color = getStepColor(index);
+
+                            // Last Step: Simple straight line with arrow
                             if (index === steps.length - 1) {
-                                // Final Arrow
-                                const x = startX + index * stepWidth;
-                                const y = startY - index * stepHeight;
-                                const arrowLength = 100 * scaleX;
-                                const arrowHeight = 40 * scaleY;
                                 return (
-                                    <g key={step.number}>
+                                    <g key={`arrow-${index}`}>
                                         <path
-                                            d={`M ${x} ${y} L ${x + arrowLength} ${y} L ${x + arrowLength} ${y - arrowHeight}`}
-                                            stroke={stepColor}
+                                            d={`M ${currentX} ${currentY} L ${currentX + horizontalSegmentLength} ${currentY}`}
+                                            stroke={color.hex}
                                             strokeWidth={strokeWidth}
                                             strokeLinecap="round"
                                             fill="none"
                                         />
                                         <path
-                                            d={`M ${x + arrowLength * 0.8} ${y - arrowHeight * 0.875} L ${x + arrowLength} ${y - arrowHeight * 1.625} L ${x + arrowLength * 1.2} ${y - arrowHeight * 0.875} Z`}
-                                            fill={stepColor}
+                                            d={`M ${currentX + horizontalSegmentLength} ${currentY} Q ${currentX + horizontalSegmentLength + cornerRadius} ${currentY} ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 30}`}
+                                            stroke={color.hex}
+                                            strokeWidth={strokeWidth}
+                                            fill="none"
+                                        />
+                                        <path
+                                            d={`M ${currentX + horizontalSegmentLength + cornerRadius - 20} ${currentY - cornerRadius - 25} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 60} L ${currentX + horizontalSegmentLength + cornerRadius + 20} ${currentY - cornerRadius - 25} Z`}
+                                            fill={color.hex}
                                         />
                                     </g>
                                 );
                             }
 
-                            const currX = startX + index * stepWidth;
-                            const currY = startY - index * stepHeight;
-                            const nextX = startX + (index + 1) * stepWidth;
-                            const nextY = startY - (index + 1) * stepHeight;
-                            const cornerOffset = 20 * Math.min(scaleX, scaleY);
+                            const nextColor = getStepColor(index + 1);
+                            const nextY = currentY - stepHeight;
+
+                            const segmentH_End = currentX + horizontalSegmentLength;
+                            const segmentV_X = segmentH_End + cornerRadius;
+                            const segmentV_Top = nextY + cornerRadius;
+                            const curveRightEnd = segmentV_X + cornerRadius;
+                            const nextStepStart = startX + (index + 1) * stride;
 
                             return (
-                                <path
-                                    key={step.number}
-                                    d={`M ${currX} ${currY} L ${nextX - cornerOffset} ${currY} Q ${nextX} ${currY} ${nextX} ${currY - cornerOffset} L ${nextX} ${nextY}`}
-                                    stroke={stepColor}
-                                    strokeWidth={strokeWidth}
-                                    strokeLinecap="round"
-                                    fill="none"
-                                />
-                            );
-                        })}
-
-                        {/* Joint Circles */}
-                        {steps.map((step, index) => {
-                            const stepColor = getStepColor(index);
-                            const circleRadius = 10 * Math.min(scaleX, scaleY);
-                            return (
-                                <circle
-                                    key={`circle-${step.number}`}
-                                    cx={startX + index * stepWidth}
-                                    cy={startY - index * stepHeight}
-                                    r={circleRadius}
-                                    fill={stepColor}
-                                />
+                                <g key={index}>
+                                    {/* Horizontal Line */}
+                                    <path
+                                        d={`M ${currentX} ${currentY} L ${segmentH_End} ${currentY}`}
+                                        stroke={color.hex}
+                                        strokeWidth={strokeWidth}
+                                        strokeLinecap="round"
+                                        fill="none"
+                                    />
+                                    {/* Curve Up */}
+                                    <path
+                                        d={`M ${segmentH_End} ${currentY} Q ${segmentV_X} ${currentY} ${segmentV_X} ${currentY - cornerRadius}`}
+                                        stroke={color.hex}
+                                        strokeWidth={strokeWidth}
+                                        fill="none"
+                                    />
+                                    {/* Vertical Line (Transition to next color) */}
+                                    <path
+                                        d={`M ${segmentV_X} ${currentY - cornerRadius} L ${segmentV_X} ${segmentV_Top}`}
+                                        stroke={nextColor.hex}
+                                        strokeWidth={strokeWidth}
+                                        fill="none"
+                                    />
+                                    {/* Curve Right */}
+                                    <path
+                                        d={`M ${segmentV_X} ${segmentV_Top} Q ${segmentV_X} ${nextY} ${segmentV_X + cornerRadius} ${nextY}`}
+                                        stroke={nextColor.hex}
+                                        strokeWidth={strokeWidth}
+                                        fill="none"
+                                    />
+                                    {/* Connector */}
+                                    {nextStepStart > curveRightEnd && (
+                                        <path
+                                            d={`M ${curveRightEnd} ${nextY} L ${nextStepStart} ${nextY}`}
+                                            stroke={nextColor.hex}
+                                            strokeWidth={strokeWidth}
+                                            fill="none"
+                                        />
+                                    )}
+                                </g>
                             );
                         })}
                     </svg>
 
-                    {/* Content Overlay */}
+                    {/* Text Content Overlay */}
                     {steps.map((step, index) => {
-                        const stepColor = getStepColor(index);
-                        const x = startX + index * stepWidth;
-                        const y = startY - index * stepHeight;
-                        const textWidth = 192 * scaleX;
-                        const titleLines = wrapText(step.title, textWidth, 12 * scaleY);
-                        const descriptionLines = wrapText(step.description || '', textWidth, 11 * scaleY).slice(0, 2);
+                        const color = getStepColor(index);
+                        const currentX = startX + index * stride;
+                        const currentY = startY - index * stepHeight - 200;
+                        const textWidth = stride * 1.2;
 
                         return (
-                            <div
-                                key={`content-${step.number}`}
-                                style={{
-                                    position: 'absolute',
-                                    left: `${x}px`,
-                                    top: `${y}px`,
-                                    display: 'flex',
-                                }}
-                            >
-                                {/* Step Number ABOVE the ladder line */}
+                            <div key={step.number}>
+                                {/* Step Number - Above Line */}
                                 <div
                                     style={{
                                         position: 'absolute',
-                                        left: `${16 * scaleX}px`,
-                                        top: `${-stepNumberSpace}px`,
-                                        color: stepColor,
+                                        left: currentX,
+                                        top: currentY - 50,
+                                        width: `${textWidth}px`,
+                                        color: color.hex,
                                         fontWeight: 'bold',
-                                        fontSize: `${14 * scaleY}px`,
-                                        whiteSpace: 'nowrap',
-                                        zIndex: 10,
+                                        fontSize: '24px',
+                                        textTransform: 'uppercase',
                                         display: 'flex',
+                                        paddingLeft: '20px',
                                     }}
                                 >
-                                    STEP {step.number.toString().padStart(2, '0')}
+                                    Step {String(step.number).padStart(2, '0')}
                                 </div>
 
-                                {/* Heading BELOW the line - positioned well below to avoid overlap */}
+                                {/* Title & Desc - Below Line */}
                                 <div
                                     style={{
                                         position: 'absolute',
-                                        left: `${16 * scaleX}px`,
-                                        top: `${50 * scaleY}px`, // Increased from 20 to 50 to ensure clear separation from path
+                                        left: currentX,
+                                        top: currentY + 20,
                                         width: `${textWidth}px`,
                                         display: 'flex',
                                         flexDirection: 'column',
+                                        paddingLeft: '20px',
                                     }}
                                 >
                                     <h3
                                         style={{
-                                            fontSize: `${13 * scaleY}px`,
+                                            fontSize: '28px',
                                             fontWeight: 'bold',
+                                            margin: '0 0 8px 0',
                                             textTransform: 'uppercase',
-                                            letterSpacing: '0.05em',
-                                            color: stepColor,
-                                            marginBottom: `${10 * scaleY}px`,
+                                            color: color.hex,
                                             display: 'flex',
                                         }}
                                     >
                                         {step.title}
                                     </h3>
-                                    
-                                    {/* Description BELOW the heading */}
                                     <p
                                         style={{
-                                            fontSize: `${11 * scaleY}px`,
-                                            lineHeight: '1.5',
-                                            color: themeColors.gray,
-                                            fontWeight: '500',
+                                            fontSize: '20px',
+                                            color: '#666666',
+                                            margin: 0,
                                             display: 'flex',
-                                            flexDirection: 'column',
                                         }}
                                     >
-                                        {descriptionLines.map((line, lineIndex) => (
-                                            <span
-                                                key={lineIndex}
-                                                style={{
-                                                    display: 'flex',
-                                                    marginBottom: lineIndex < descriptionLines.length - 1 ? `${4 * scaleY}px` : '0',
-                                                }}
-                                            >
-                                                {line}
-                                            </span>
-                                        ))}
+                                        {step.description}
                                     </p>
                                 </div>
                             </div>
@@ -719,7 +706,7 @@ function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
     // Simple approximation: ~0.6 * fontSize per character
     const avgCharWidth = fontSize * 0.6;
     const maxChars = Math.floor(maxWidth / avgCharWidth);
-    
+
     const words = text.split(' ');
     const lines: string[] = [];
     let currentLine = '';
