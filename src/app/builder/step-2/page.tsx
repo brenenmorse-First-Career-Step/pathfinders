@@ -130,6 +130,7 @@ export default function Step2Page() {
                 placeholder="e.g., Aspiring Software Developer | Class of 2026"
                 rows={3}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-career-blue focus:outline-none resize-none"
+                maxLength={120}
               />
               <div className="flex justify-between text-xs">
                 <span className="text-red-500">{error}</span>

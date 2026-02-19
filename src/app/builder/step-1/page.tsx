@@ -171,6 +171,7 @@ export default function Step1Page() {
                     ? "border-red-500 bg-red-50"
                     : "border-gray-300 focus:border-career-blue"
                     }`}
+                  maxLength={20}
                 />
                 {showErrors && !formData.fullName.trim() && (
                   <p className="mt-1 text-sm text-red-600 font-medium">Please enter your full name to continue.</p>
