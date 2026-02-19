@@ -189,7 +189,7 @@ export const ProfessionalResumePDF = ({ data }: { data: ResumeData }) => (
                                     {exp.bullets.map((bullet, bulletIndex) => (
                                         <View key={bulletIndex} style={{ flexDirection: 'row' }}>
                                             <Text style={styles.bulletPoint}>•</Text>
-                                            <Text style={styles.bullet}>{bullet}</Text>
+                                            <Text style={styles.bullet}>{bullet.replace(/^[•\-\*\s]+/, '')}</Text>
                                         </View>
                                     ))}
                                 </View>
