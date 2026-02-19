@@ -627,8 +627,8 @@ async function generateMilestoneRoadmapImage(
                         const currentY = startY - index * stepHeight - 200;
                         const textWidth = stride * 1.1;
 
-                        const titleLines = wrapText(step.title, textWidth, 22);
-                        const descLines = wrapText(step.description, textWidth, 14).slice(0, 3);
+                        const titleLines = wrapText(step.title, textWidth, 28);
+                        const descLines = wrapText(step.description, textWidth, 18).slice(0, 2);
 
                         return (
                             <div
@@ -636,11 +636,11 @@ async function generateMilestoneRoadmapImage(
                                 style={{
                                     position: 'absolute',
                                     left: currentX,
-                                    top: currentY - 140, // Positioned above the step line
+                                    top: currentY - 170, // Positioned well above the step line
                                     display: 'flex',
                                     flexDirection: 'column',
                                     width: `${textWidth}px`,
-                                    paddingLeft: '10px',
+                                    paddingLeft: '15px',
                                 }}
                             >
                                 {/* Step Number */}
@@ -648,9 +648,9 @@ async function generateMilestoneRoadmapImage(
                                     style={{
                                         color: color.hex,
                                         fontWeight: 'bold',
-                                        fontSize: '16px',
+                                        fontSize: '20px',
                                         textTransform: 'uppercase',
-                                        marginBottom: '2px',
+                                        marginBottom: '6px',
                                         display: 'flex',
                                     }}
                                 >
@@ -662,14 +662,14 @@ async function generateMilestoneRoadmapImage(
                                     style={{
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        marginBottom: '4px',
+                                        marginBottom: '8px',
                                     }}
                                 >
                                     {titleLines.map((line, lIdx) => (
                                         <div
                                             key={lIdx}
                                             style={{
-                                                fontSize: '18px',
+                                                fontSize: '26px',
                                                 fontWeight: 'bold',
                                                 textTransform: 'uppercase',
                                                 color: color.hex,
@@ -693,9 +693,9 @@ async function generateMilestoneRoadmapImage(
                                         <div
                                             key={lIdx}
                                             style={{
-                                                fontSize: '12px',
+                                                fontSize: '16px',
                                                 color: '#666666',
-                                                lineHeight: '1.2',
+                                                lineHeight: '1.3',
                                                 display: 'flex',
                                             }}
                                         >
