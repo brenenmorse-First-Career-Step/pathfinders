@@ -1,4 +1,7 @@
+"use client";
+
 import React from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 // Helper function to format date from YYYY-MM to "Month YYYY"
 const formatDate = (dateString: string): string => {
@@ -66,6 +69,34 @@ export function LiveResumePreview({
     isPaid = false,
     variant = 'preview',
 }: LiveResumePreviewProps) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const isBuilder = pathname?.includes('/builder/');
+    const editable = isBuilder && variant !== 'document';
+
+    const handleEdit = (stepPath: string) => {
+        if (editable) {
+            router.push(stepPath);
+        }
+    };
+
+    const renderEditButton = (stepPath: string) => {
+        if (!editable) return null;
+        return (
+            <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleEdit(stepPath); }}
+                className="absolute top-2 right-2 md:top-2 md:-right-2 p-1.5 bg-white border border-gray-200 hover:bg-career-blue hover:text-white text-gray-500 rounded-md transition-all opacity-100 md:opacity-0 group-hover:opacity-100 z-50 flex items-center gap-1.5 text-xs font-medium shadow-sm cursor-pointer"
+                aria-label="Edit section"
+                title="Edit section"
+            >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span className="hidden sm:inline">Edit</span>
+            </button>
+        );
+    };
+
     const containerClasses = variant === 'preview'
         ? "relative bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200 max-w-3xl"
         : "relative bg-white p-8 w-full h-full";
@@ -94,8 +125,8 @@ export function LiveResumePreview({
             {/* Content */}
             <div className="relative z-10">
                 {/* Header - Centered */}
-                <div className="text-center mb-4 pb-4 w-full overflow-hidden">
-
+                <div className={`text-center mb-4 pb-4 w-full relative ${editable ? 'group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors' : ''}`}>
+                    {renderEditButton('/builder/step-1')}
                     <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide mb-2 break-all sm:break-words">
                         {fullName || 'YOUR NAME'}
                     </h1>
@@ -115,7 +146,8 @@ export function LiveResumePreview({
 
                 {/* Professional Summary */}
                 {aboutText && (
-                    <div className="mb-5">
+                    <div className={`mb-5 relative ${editable ? 'group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors' : ''}`}>
+                        {renderEditButton('/builder/step-3')}
                         <h2 className="text-base font-bold uppercase tracking-wide text-gray-900 border-b-2 border-gray-900 pb-1 mb-3">
                             PROFESSIONAL SUMMARY
                         </h2>
@@ -127,7 +159,8 @@ export function LiveResumePreview({
 
                 {/* Work Experience */}
                 {experiences && experiences.length > 0 && (
-                    <div className="mb-5">
+                    <div className={`mb-5 relative ${editable ? 'group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors' : ''}`}>
+                        {renderEditButton('/builder/step-4')}
                         <h2 className="text-base font-bold uppercase tracking-wide text-gray-900 border-b-2 border-gray-900 pb-1 mb-3">
                             WORK EXPERIENCE
                         </h2>
@@ -165,7 +198,8 @@ export function LiveResumePreview({
 
                 {/* Education */}
                 {highSchool && (
-                    <div className="mb-5">
+                    <div className={`mb-5 relative ${editable ? 'group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors' : ''}`}>
+                        {renderEditButton('/builder/step-1')}
                         <h2 className="text-base font-bold uppercase tracking-wide text-gray-900 border-b-2 border-gray-900 pb-1 mb-3">
                             EDUCATION
                         </h2>
@@ -184,7 +218,8 @@ export function LiveResumePreview({
 
                 {/* Certifications */}
                 {certifications && certifications.length > 0 && (
-                    <div className="mb-5">
+                    <div className={`mb-5 relative ${editable ? 'group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors' : ''}`}>
+                        {renderEditButton('/builder/step-4')}
                         <h2 className="text-base font-bold uppercase tracking-wide text-gray-900 border-b-2 border-gray-900 pb-1 mb-3">
                             CERTIFICATIONS
                         </h2>
@@ -208,7 +243,8 @@ export function LiveResumePreview({
 
                 {/* Skills */}
                 {skills && skills.length > 0 && (
-                    <div className="mb-5">
+                    <div className={`mb-5 relative ${editable ? 'group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors' : ''}`}>
+                        {renderEditButton('/builder/step-5')}
                         <h2 className="text-base font-bold uppercase tracking-wide text-gray-900 border-b-2 border-gray-900 pb-1 mb-3">
                             SKILLS
                         </h2>
