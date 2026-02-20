@@ -46,7 +46,7 @@ Create a detailed career roadmap including:
    - Direct link to the class (use real URLs from platforms like Coursera, edX, Khan Academy, YouTube, etc.)
    - Explanation of why it matters
    - Make sure no link repeats
-4. A step-by-step plan (6-10 steps depending on the career). For each step:
+4. A step-by-step plan (EXACTLY 7 steps, no more, no less). For each step:
    - Step number
    - Title (MAXIMUM 2 WORDS, e.g., "MASTER REACT" or "LEARN PYTHON")
    - Detailed description (KEEP IT SHORT, 5-7 words maximum)
@@ -458,27 +458,37 @@ async function generateMilestoneRoadmapImage(
     const width = 1792;
     const height = 1024;
 
-    // Brand colors from newcode.tsx
+    // Strict 7 colors matching the card design provided by user
     const COLORS = [
-        { name: 'orange', hex: '#F59E0B' }, // text-amber-500
-        { name: 'blue', hex: '#3B82F6' },   // text-blue-500
-        { name: 'green', hex: '#22C55E' },  // text-green-500
-        { name: 'red', hex: '#EF4444' },    // text-red-500
+        { hex: '#9d94ff' }, // Purple
+        { hex: '#7ef0eb' }, // Teal
+        { hex: '#a8fc58' }, // Lime
+        { hex: '#ffcf3d' }, // Yellow
+        { hex: '#ffa063' }, // Light Orange
+        { hex: '#ff771a' }, // Deep Orange
+        { hex: '#ff4c4c' }, // Red
     ];
 
-    // Scaling constants for the 1792x1024 canvas
-    const padding = 100;
-    const startX = 120;
-    const stride = (width - padding * 4) / (steps.length || 1);
-    const stepHeight = (height - padding * 5) / (steps.length || 1);
-    const cornerRadius = 50;
-    const strokeWidth = 18;
-    const horizontalSegmentLength = stride * 0.65;
+    // Ensure we only process up to 7 steps to strictly enforce the design
+    const displaySteps = steps.slice(0, 7);
 
-    // We start from the bottom-left
-    const startY = height - 150;
+    // Layout Constants
+    const paddingX = 80;
+    const cardWidth = 200;
+    // Calculate gap dynamically to distribute cards evenly across available width
+    const totalCardsWidth = 7 * cardWidth;
+    const availableWidth = width - (paddingX * 2);
+    const gap = (availableWidth - totalCardsWidth) / 6;
 
-    const getStepColor = (index: number) => COLORS[index % COLORS.length];
+    const cardY = 250;
+    const cardHeight = 550;
+    const circleRadius = 50;
+
+    // Timeline positioning
+    const timelineY = cardY + cardHeight + 80;
+
+    // Card SVG Path (rectangle with pointed bottom)
+    const cardPath = `M 0 0 L ${cardWidth} 0 L ${cardWidth} ${cardHeight - 40} L ${cardWidth / 2} ${cardHeight} L 0 ${cardHeight - 40} Z`;
 
     const imageResponse = new ImageResponse(
         (
@@ -488,7 +498,7 @@ async function generateMilestoneRoadmapImage(
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: '#F4F7FB', // Light blue/gray background from design
                     padding: '60px 80px',
                 }}
             >
@@ -497,18 +507,17 @@ async function generateMilestoneRoadmapImage(
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
-                        marginBottom: '40px',
+                        marginBottom: '20px',
                     }}
                 >
                     <h1
                         style={{
                             fontSize: '72px',
                             fontWeight: 'bold',
-                            color: '#263238',
+                            color: '#0B1120',
                             textAlign: 'center',
                             display: 'flex',
-                            textTransform: 'uppercase',
-                            letterSpacing: '2px',
+                            letterSpacing: '1px',
                         }}
                     >
                         Milestone Roadmap
@@ -522,10 +531,9 @@ async function generateMilestoneRoadmapImage(
                         width: '100%',
                         flex: 1,
                         display: 'flex',
-                        minHeight: '800px',
                     }}
                 >
-                    {/* SVG Path Container */}
+                    {/* Render the background SVG containing timeline line, cards, and bottom dots */}
                     <svg
                         style={{
                             position: 'absolute',
@@ -534,174 +542,178 @@ async function generateMilestoneRoadmapImage(
                             width: '100%',
                             height: '100%',
                         }}
-                        viewBox={`0 0 ${width} ${height - 200}`}
+                        viewBox={`0 0 ${width} 800`}
                     >
-                        {steps.map((_, index) => {
-                            const currentX = startX + index * stride;
-                            const currentY = startY - index * stepHeight - 200; // Adjusted for header
-                            const color = getStepColor(index);
-
-                            // Last Step: Simple straight line with arrow
-                            if (index === steps.length - 1) {
-                                return (
-                                    <g key={`arrow-${index}`}>
-                                        <path
-                                            d={`M ${currentX} ${currentY} L ${currentX + horizontalSegmentLength} ${currentY}`}
-                                            stroke={color.hex}
-                                            strokeWidth={strokeWidth}
-                                            strokeLinecap="round"
-                                            fill="none"
-                                        />
-                                        <path
-                                            d={`M ${currentX + horizontalSegmentLength} ${currentY} Q ${currentX + horizontalSegmentLength + cornerRadius} ${currentY} ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 100}`}
-                                            stroke={color.hex}
-                                            strokeWidth={strokeWidth}
-                                            fill="none"
-                                        />
-                                        <path
-                                            d={`M ${currentX + horizontalSegmentLength + cornerRadius - 20} ${currentY - cornerRadius - 95} L ${currentX + horizontalSegmentLength + cornerRadius} ${currentY - cornerRadius - 130} L ${currentX + horizontalSegmentLength + cornerRadius + 20} ${currentY - cornerRadius - 95} Z`}
-                                            fill={color.hex}
-                                        />
-                                    </g>
-                                );
-                            }
-
-                            const nextColor = getStepColor(index + 1);
-                            const nextY = currentY - stepHeight;
-
-                            const segmentH_End = currentX + horizontalSegmentLength;
-                            const segmentV_X = segmentH_End + cornerRadius;
-                            const segmentV_Top = nextY + cornerRadius;
-                            const curveRightEnd = segmentV_X + cornerRadius;
-                            const nextStepStart = startX + (index + 1) * stride;
+                        {/* 1. Timeline segments (behind dots) */}
+                        {displaySteps.map((_, index) => {
+                            if (index === displaySteps.length - 1) return null; // No line after last dot
+                            const currentCenterX = paddingX + index * (cardWidth + gap) + (cardWidth / 2);
+                            const nextCenterX = currentCenterX + cardWidth + gap;
+                            const color = COLORS[index].hex;
 
                             return (
-                                <g key={index}>
-                                    {/* Horizontal Line */}
-                                    <path
-                                        d={`M ${currentX} ${currentY} L ${segmentH_End} ${currentY}`}
-                                        stroke={color.hex}
-                                        strokeWidth={strokeWidth}
-                                        strokeLinecap="round"
-                                        fill="none"
+                                <g key={`timeline-line-${index}`}>
+                                    <line
+                                        x1={currentCenterX}
+                                        y1={timelineY}
+                                        x2={nextCenterX}
+                                        y2={timelineY}
+                                        stroke={color}
+                                        strokeWidth="6"
                                     />
-                                    {/* Curve Up */}
-                                    <path
-                                        d={`M ${segmentH_End} ${currentY} Q ${segmentV_X} ${currentY} ${segmentV_X} ${currentY - cornerRadius}`}
-                                        stroke={color.hex}
-                                        strokeWidth={strokeWidth}
-                                        fill="none"
-                                    />
-                                    {/* Vertical Line (Transition to next color) */}
-                                    <path
-                                        d={`M ${segmentV_X} ${currentY - cornerRadius} L ${segmentV_X} ${segmentV_Top}`}
-                                        stroke={nextColor.hex}
-                                        strokeWidth={strokeWidth}
-                                        fill="none"
-                                    />
-                                    {/* Curve Right */}
-                                    <path
-                                        d={`M ${segmentV_X} ${segmentV_Top} Q ${segmentV_X} ${nextY} ${segmentV_X + cornerRadius} ${nextY}`}
-                                        stroke={nextColor.hex}
-                                        strokeWidth={strokeWidth}
-                                        fill="none"
-                                    />
-                                    {/* Connector */}
-                                    {nextStepStart > curveRightEnd && (
-                                        <path
-                                            d={`M ${curveRightEnd} ${nextY} L ${nextStepStart} ${nextY}`}
-                                            stroke={nextColor.hex}
-                                            strokeWidth={strokeWidth}
-                                            fill="none"
-                                        />
-                                    )}
                                 </g>
+                            );
+                        })}
+                        {/* Extension line for the end arrow */}
+                        <g>
+                            <line
+                                x1={paddingX + 6 * (cardWidth + gap) + (cardWidth / 2)}
+                                y1={timelineY}
+                                x2={paddingX + 6 * (cardWidth + gap) + cardWidth + 40}
+                                y2={timelineY}
+                                stroke={COLORS[6].hex}
+                                strokeWidth="6"
+                            />
+                            {/* Arrow head */}
+                            <path
+                                d={`M ${paddingX + 6 * (cardWidth + gap) + cardWidth + 30} ${timelineY - 10} L ${paddingX + 6 * (cardWidth + gap) + cardWidth + 50} ${timelineY} L ${paddingX + 6 * (cardWidth + gap) + cardWidth + 30} ${timelineY + 10} Z`}
+                                fill={COLORS[6].hex}
+                            />
+                            {/* Extension line at the beginning */}
+                            <line
+                                x1={paddingX - 40}
+                                y1={timelineY}
+                                x2={paddingX + (cardWidth / 2)}
+                                y2={timelineY}
+                                stroke={COLORS[0].hex}
+                                strokeWidth="6"
+                            />
+                            <line
+                                x1={paddingX - 40}
+                                y1={timelineY - 15}
+                                x2={paddingX - 40}
+                                y2={timelineY + 15}
+                                stroke={COLORS[0].hex}
+                                strokeWidth="4"
+                            />
+                        </g>
+
+                        {/* 2. Timeline dots */}
+                        {displaySteps.map((_, index) => {
+                            const currentCenterX = paddingX + index * (cardWidth + gap) + (cardWidth / 2);
+                            const color = COLORS[index].hex;
+                            return (
+                                <circle
+                                    key={`timeline-dot-${index}`}
+                                    cx={currentCenterX}
+                                    cy={timelineY}
+                                    r="14"
+                                    fill={color}
+                                />
+                            );
+                        })}
+
+                        {/* 3. Cards backgrounds */}
+                        {displaySteps.map((_, index) => {
+                            const currentX = paddingX + index * (cardWidth + gap);
+                            return (
+                                <g key={`card-bg-${index}`} transform={`translate(${currentX}, ${cardY})`}>
+                                    <path d={cardPath} fill="#E8EAEF" />
+                                </g>
+                            );
+                        })}
+
+                        {/* 4. Top Color Circles */}
+                        {displaySteps.map((_, index) => {
+                            const currentCenterX = paddingX + index * (cardWidth + gap) + (cardWidth / 2);
+                            const color = COLORS[index].hex;
+                            return (
+                                <circle
+                                    key={`top-circle-${index}`}
+                                    cx={currentCenterX}
+                                    cy={cardY}
+                                    r={circleRadius}
+                                    fill={color}
+                                />
                             );
                         })}
                     </svg>
 
-                    {/* Text Content Overlay */}
-                    {steps.map((step, index) => {
-                        const color = getStepColor(index);
-                        const currentX = startX + index * stride;
-                        const currentY = startY - index * stepHeight - 200;
-                        const textWidth = stride * 1.1;
+                    {/* Text Overlay for Numbers, Headings, and Descriptions */}
+                    {displaySteps.map((step, index) => {
+                        const currentX = paddingX + index * (cardWidth + gap);
+                        const currentCenterX = currentX + (cardWidth / 2);
 
-                        const titleLines = wrapText(step.title, textWidth, 28);
-                        const descLines = wrapText(step.description, textWidth, 18).slice(0, 2);
+                        // Ensure we respect word limits for visual consistency
+                        const titleParts = step.title.split(' ').slice(0, 3).join(' ');
 
                         return (
-                            <div
-                                key={step.number}
-                                style={{
-                                    position: 'absolute',
-                                    left: currentX,
-                                    top: currentY - 170, // Positioned well above the step line
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    width: `${textWidth}px`,
-                                    paddingLeft: '15px',
-                                }}
-                            >
-                                {/* Step Number */}
+                            <div key={`text-overlay-${index}`} style={{ display: 'flex' }}>
+                                {/* Step Number (Inside Top Circle) */}
                                 <div
                                     style={{
-                                        color: color.hex,
-                                        fontWeight: 'bold',
-                                        fontSize: '20px',
-                                        textTransform: 'uppercase',
-                                        marginBottom: '6px',
+                                        position: 'absolute',
+                                        left: currentCenterX - circleRadius,
+                                        top: cardY - circleRadius,
+                                        width: `${circleRadius * 2}px`,
+                                        height: `${circleRadius * 2}px`,
                                         display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '48px',
+                                        fontWeight: 'normal',
+                                        color: '#111827',
                                     }}
                                 >
-                                    Step {String(step.number).padStart(2, '0')}
+                                    {index + 1}
                                 </div>
 
-                                {/* Title */}
+                                {/* Card Content (Heading & Description) */}
                                 <div
                                     style={{
+                                        position: 'absolute',
+                                        left: currentX,
+                                        top: cardY + circleRadius + 20,
+                                        width: `${cardWidth}px`,
+                                        height: `${cardHeight - circleRadius - 60}px`,
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        marginBottom: '8px',
+                                        alignItems: 'center',
+                                        padding: '0 15px',
                                     }}
                                 >
-                                    {titleLines.map((line, lIdx) => (
-                                        <div
-                                            key={lIdx}
-                                            style={{
-                                                fontSize: '26px',
-                                                fontWeight: 'bold',
-                                                textTransform: 'uppercase',
-                                                color: color.hex,
-                                                lineHeight: '1.1',
-                                                display: 'flex',
-                                            }}
-                                        >
-                                            {line}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Description */}
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                    }}
-                                >
-                                    {descLines.map((line, lIdx) => (
-                                        <div
-                                            key={lIdx}
-                                            style={{
-                                                fontSize: '16px',
-                                                color: '#666666',
-                                                lineHeight: '1.3',
-                                                display: 'flex',
-                                            }}
-                                        >
-                                            {line}
-                                        </div>
-                                    ))}
+                                    <div
+                                        style={{
+                                            fontSize: '22px',
+                                            fontWeight: 'bold',
+                                            color: '#0B1120',
+                                            textAlign: 'center',
+                                            marginBottom: '15px',
+                                            textTransform: 'capitalize',
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            width: '100%',
+                                        }}
+                                    >
+                                        {titleParts}
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontSize: '14px',
+                                            color: '#4B5563',
+                                            textAlign: 'center',
+                                            lineHeight: '1.4',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        {wrapText(step.description, cardWidth - 30, 14).slice(0, 8).map((line, lIdx) => (
+                                            <span key={lIdx} style={{ display: 'flex' }}>
+                                                {line}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         );
