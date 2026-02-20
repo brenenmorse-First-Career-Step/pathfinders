@@ -407,7 +407,7 @@ async function generateInfographicImage(
                                     <div
                                         style={{
                                             position: 'absolute',
-                                            top: isEven ? '-180px' : '180px',
+                                            top: isEven ? '-200px' : '200px', // Increased spacing from marker
                                             left: '50%',
                                             transform: 'translateX(-50%)',
                                             display: 'flex',
