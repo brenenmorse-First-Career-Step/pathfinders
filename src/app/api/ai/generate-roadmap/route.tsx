@@ -60,7 +60,7 @@ Rules:
 - Roadmap should be actionable and beginner-friendly
 - Include 1-3 relevant hashtags per section
 - Do NOT include real person identification from images
-- All course links must be real and accessible
+- CRITICAL: DO NOT HALLUCINATE LINKS. If you do not know a 100% strictly accurate URL, you MUST output a Google search URL instead (e.g., https://www.google.com/search?q=free+online+course+golf+basics). Do not make up Coursera or Udemy URLs.
 
 Return ONLY a valid JSON object with this exact structure:
 {
