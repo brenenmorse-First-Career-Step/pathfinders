@@ -6,7 +6,7 @@ import { BuilderLayout } from "@/components/layout";
 import { Button, Card } from "@/components/ui";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { LiveResumePreview } from "@/components/LiveResumePreview";
+
 import { createBrowserClient } from "@/lib/supabase";
 
 export default function Step6Page() {
@@ -16,7 +16,7 @@ export default function Step6Page() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(profile.photoUrl);
-  const [showPhotoOnResume, setShowPhotoOnResume] = useState(profile.showPhotoOnResume);
+
   const [settings, setSettings] = useState(
     profile.photoSettings || {
       brightness: 100,
@@ -29,7 +29,7 @@ export default function Step6Page() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  const uploadPhotoToStorage = async (file: File): Promise<string | null> => {
+  const uploadPhotoToStorage = useCallback(async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
       const supabase = createBrowserClient();
@@ -40,7 +40,7 @@ export default function Step6Page() {
       const filePath = `profile-photos/${fileName}`;
 
       // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('resume-assets')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -65,7 +65,7 @@ export default function Step6Page() {
     } finally {
       setUploading(false);
     }
-  };
+  }, [user?.id]);
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,7 +97,7 @@ export default function Step6Page() {
         });
       }
     },
-    [user]
+    [uploadPhotoToStorage]
   );
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
@@ -119,7 +119,7 @@ export default function Step6Page() {
         });
       }
     }
-  }, [user]);
+  }, [uploadPhotoToStorage]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

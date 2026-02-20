@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase";
-import { LiveResumePreview } from "@/components/LiveResumePreview";
+import { ClientResumeViewer } from "@/components/ClientResumeViewer";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
@@ -46,7 +46,7 @@ export default async function ResumeViewPage({ params }: Props) {
     // 1. Get Resume by shareable link
     const { data: resume, error: resumeError } = await supabase
         .from('resumes')
-        .select('user_id')
+        .select('user_id, title')
         .eq('shareable_link', id)
         .single();
 
@@ -84,41 +84,35 @@ export default async function ResumeViewPage({ params }: Props) {
 
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-            <div
-                style={{
-                    width: '210mm',
-                    minHeight: '297mm',
-                    padding: 0,
-                    margin: '0 auto',
-                    background: 'white',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    overflow: 'hidden', // Prevent spillover
-                    display: 'flex',
-                    flexDirection: 'column'
-                }}
-                className="print:shadow-none print:m-0"
-            >
-                <LiveResumePreview
-                    fullName={user?.full_name || ""}
-                    email={user?.email || ""}
-                    phone={profile?.phone || ""}
-                    location={profile?.location || ""}
-                    linkedin={user?.linkedin_link || ""}
-                    headline={profile?.headline || ""}
-                    aboutText={profile?.about_text || ""}
-                    highSchool={profile?.high_school || ""}
-                    graduationYear={profile?.graduation_year || ""}
-                    skills={profile?.skills || []}
-                    experiences={experiences || []}
-                    certifications={certifications?.map(c => ({
-                        name: c.name,
-                        issuer: c.issuer || "",
-                        dateIssued: c.date_issued || ""
-                    })) || []}
-                    isPaid={true}
-                    variant="document"
-                />
-            </div>
+            <ClientResumeViewer
+                fullName={user?.full_name || ""}
+                email={user?.email || ""}
+                phone={profile?.phone || ""}
+                location={profile?.location || ""}
+                linkedin={user?.linkedin_link || ""}
+                headline={profile?.headline || ""}
+                aboutText={profile?.about_text || ""}
+                highSchool={profile?.high_school || ""}
+                graduationYear={profile?.graduation_year || ""}
+                skills={profile?.skills || []}
+                experiences={experiences?.map((exp: { type?: string; title?: string; organization?: string; bullets?: string[]; description?: string; start_date?: string; end_date?: string; location?: string; is_current?: boolean }) => ({
+                    type: exp.type || "",
+                    title: exp.title || "",
+                    organization: exp.organization || "",
+                    description: exp.bullets ? exp.bullets.join('\n') : (exp.description || ""),
+                    startDate: exp.start_date || "",
+                    endDate: exp.end_date || "",
+                    location: exp.location || "",
+                    isCurrent: exp.is_current || false
+                })) || []}
+                certifications={certifications?.map(c => ({
+                    name: c.name,
+                    issuer: c.issuer || "",
+                    dateIssued: c.date_issued || ""
+                })) || []}
+                isPaid={true}
+                title={resume.title || `${user?.full_name || 'Resume'}`}
+            />
             <div className="mt-8 text-center text-sm text-gray-500 pb-8">
                 <p>Created with FirstCareerSteps.com</p>
             </div>

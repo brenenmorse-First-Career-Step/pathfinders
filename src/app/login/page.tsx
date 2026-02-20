@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -9,7 +9,7 @@ import Footer from '@/components/Footer';
 import { logger } from '@/lib/logger';
 
 function LoginContent() {
-  const router = useRouter();
+
   const searchParams = useSearchParams();
   const { signIn, resetPasswordForEmail } = useAuth();
 

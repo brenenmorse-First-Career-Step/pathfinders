@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import type { RoadmapResponse } from '@/types/roadmap';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function CareerRoadmapPage() {
     const { user, loading: authLoading } = useAuth();
@@ -235,10 +236,13 @@ function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack:
                                 </div>
                             </div>
                             <div className="relative group">
-                                <img
+                                <Image
                                     src={infographicUrl}
                                     alt={`${roadmapData.careerName} Career Roadmap Infographic`}
-                                    className="w-full rounded-lg"
+                                    width={800}
+                                    height={450}
+                                    unoptimized
+                                    className="w-full h-auto rounded-lg"
                                 />
                             </div>
                         </div>
@@ -270,10 +274,13 @@ function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack:
                                 </div>
                             </div>
                             <div className="relative group">
-                                <img
+                                <Image
                                     src={milestoneRoadmapUrl}
                                     alt={`${roadmapData.careerName} Milestone Roadmap`}
-                                    className="w-full rounded-lg"
+                                    width={800}
+                                    height={450}
+                                    unoptimized
+                                    className="w-full h-auto rounded-lg"
                                 />
                             </div>
                         </div>
@@ -423,7 +430,7 @@ function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack:
 
             {/* Image View Modal */}
             {viewImage && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
                     onClick={() => setViewImage(null)}
                 >
@@ -437,10 +444,13 @@ function RoadmapDisplay({ roadmap, onBack }: { roadmap: RoadmapResponse; onBack:
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
-                        <img
+                        <Image
                             src={viewImage}
                             alt="Roadmap view"
-                            className="max-w-full max-h-full object-contain rounded-lg"
+                            width={1200}
+                            height={800}
+                            unoptimized
+                            className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
                             onClick={(e) => e.stopPropagation()}
                         />
                     </div>

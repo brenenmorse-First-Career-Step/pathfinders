@@ -761,18 +761,18 @@ export async function POST(request: NextRequest) {
 
                 if (invoice.amount_paid > 0 && invoice.customer_email) {
                     try {
+                        /* Temporarily disabled due to DNS issues
                         const amount = new Intl.NumberFormat('en-US', {
                             style: 'currency',
                             currency: invoice.currency,
                         }).format(invoice.amount_paid / 100);
 
-                        /* Temporarily disabled due to DNS issues
-                                                await sendEmail({
-                                                    to: invoice.customer_email,
-                                                    subject: 'Payment Successful - First Career Steps',
-                                                    html: PaymentSuccessEmailTemplate(invoice.customer_name || 'Valued Customer', amount),
-                                                });
-                                                paymentLogger.info('Payment success email sent', { email: invoice.customer_email, invoiceId: invoice.id });
+                        await sendEmail({
+                            to: invoice.customer_email,
+                            subject: 'Payment Successful - First Career Steps',
+                            html: PaymentSuccessEmailTemplate(invoice.customer_name || 'Valued Customer', amount),
+                        });
+                        paymentLogger.info('Payment success email sent', { email: invoice.customer_email, invoiceId: invoice.id });
                         */
                     } catch (emailError) {
                         paymentLogger.error(emailError as Error, { context: 'sendPaymentSuccessEmail', invoiceId: invoice.id });
@@ -793,10 +793,9 @@ export async function POST(request: NextRequest) {
 
                 if (invoice.customer_email) {
                     try {
+                        /* Temporarily disabled due to DNS issues
                         const { sendEmail } = await import('@/lib/email');
                         const { PaymentFailedEmailTemplate } = await import('@/components/emails/templates');
-
-                        /* Temporarily disabled due to DNS issues
                                                 await sendEmail({
                                                     to: invoice.customer_email,
                                                     subject: 'Payment Failed - First Career Steps',

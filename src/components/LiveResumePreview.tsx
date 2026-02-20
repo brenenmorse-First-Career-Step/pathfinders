@@ -15,7 +15,7 @@ const formatDate = (dateString: string): string => {
     return `${monthNames[monthIndex]} ${year}`;
 };
 
-interface Experience {
+export interface Experience {
     type: string;
     title: string;
     organization: string;
@@ -26,7 +26,7 @@ interface Experience {
     isCurrent?: boolean;
 }
 
-interface Certification {
+export interface Certification {
     name: string;
     issuer?: string;
     dateIssued?: string;
@@ -45,8 +45,7 @@ interface LiveResumePreviewProps {
     skills?: string[];
     experiences?: Experience[];
     certifications?: Certification[];
-    photoUrl?: string | null;
-    showPhoto?: boolean;
+
     isPaid?: boolean;
     variant?: 'preview' | 'document';
 }
@@ -64,8 +63,7 @@ export function LiveResumePreview({
     skills,
     experiences,
     certifications,
-    photoUrl,
-    showPhoto = true,
+
     isPaid = false,
     variant = 'preview',
 }: LiveResumePreviewProps) {

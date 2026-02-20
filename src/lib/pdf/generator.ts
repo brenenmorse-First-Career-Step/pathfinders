@@ -123,7 +123,7 @@ export async function uploadPDFToStorage(
         const fileName = `resume_${userId}_${Date.now()}.pdf`;
 
         // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from('resumes')
             .upload(fileName, pdfBlob, {
                 contentType: 'application/pdf',

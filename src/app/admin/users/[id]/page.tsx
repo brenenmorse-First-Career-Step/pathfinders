@@ -50,6 +50,7 @@ export default function AdminUserDetailPage() {
 
     useEffect(() => {
         fetchUser();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const handleSave = async (e: React.FormEvent) => {

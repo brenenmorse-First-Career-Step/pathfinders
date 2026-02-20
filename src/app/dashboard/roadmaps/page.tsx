@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createBrowserClient } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { CareerRoadmap } from '@/types/roadmap';
 
 interface RoadmapRecord {
@@ -24,6 +25,7 @@ export default function RoadmapsPage() {
 
     useEffect(() => {
         fetchRoadmaps();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
     const fetchRoadmaps = async () => {
@@ -151,10 +153,13 @@ export default function RoadmapsPage() {
                                             Created: {new Date(roadmap.created_at).toLocaleDateString()}
                                         </p>
                                         {roadmap.infographic_url && (
-                                            <img
+                                            <Image
                                                 src={roadmap.infographic_url}
                                                 alt={`${roadmap.career_name} Infographic`}
-                                                className="w-full max-w-md rounded-lg mb-4"
+                                                width={400}
+                                                height={225}
+                                                unoptimized
+                                                className="w-full max-w-md h-auto rounded-lg mb-4"
                                             />
                                         )}
                                     </div>
@@ -278,10 +283,13 @@ function RoadmapDetailView({
                                     </div>
                                 </div>
                                 <div className="relative group">
-                                    <img
+                                    <Image
                                         src={infographic_url}
                                         alt={`${roadmapData.careerName} Career Roadmap Infographic`}
-                                        className="w-full rounded-lg"
+                                        width={800}
+                                        height={450}
+                                        unoptimized
+                                        className="w-full h-auto rounded-lg"
                                     />
                                 </div>
                             </div>
@@ -315,10 +323,13 @@ function RoadmapDetailView({
                                     </div>
                                 </div>
                                 <div className="relative group">
-                                    <img
+                                    <Image
                                         src={milestone_roadmap_url}
                                         alt={`${roadmapData.careerName} Milestone Roadmap`}
-                                        className="w-full rounded-lg"
+                                        width={800}
+                                        height={450}
+                                        unoptimized
+                                        className="w-full h-auto rounded-lg"
                                     />
                                 </div>
                             </div>
@@ -467,7 +478,7 @@ function RoadmapDetailView({
 
             {/* Image View Modal */}
             {viewImage && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
                     onClick={() => setViewImage(null)}
                 >
@@ -481,10 +492,13 @@ function RoadmapDetailView({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
-                        <img
+                        <Image
                             src={viewImage}
                             alt="Roadmap view"
-                            className="max-w-full max-h-full object-contain rounded-lg"
+                            width={1200}
+                            height={800}
+                            unoptimized
+                            className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
                             onClick={(e) => e.stopPropagation()}
                         />
                     </div>

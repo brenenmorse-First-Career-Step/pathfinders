@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createAdminClient } from '@/lib/supabase';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
     try {
         const cookieStore = await cookies();
 

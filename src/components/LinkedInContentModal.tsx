@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import type { LinkedInContent } from '@/types/linkedin';
+import Image from 'next/image';
 
 interface LinkedInContentModalProps {
     isOpen: boolean;
@@ -72,9 +73,12 @@ export default function LinkedInContentModal({
                 {(userName || userPhoto) && (
                     <div className="flex items-center gap-4 mb-6 p-4 bg-gradient-to-r from-[#0077B5]/10 to-[#00A0DC]/10 rounded-xl border border-[#0077B5]/20">
                         {userPhoto && (
-                            <img
+                            <Image
                                 src={userPhoto}
                                 alt={userName || 'Profile'}
+                                width={64}
+                                height={64}
+                                unoptimized
                                 className="w-16 h-16 rounded-full object-cover border-2 border-[#0077B5]"
                             />
                         )}

@@ -153,7 +153,7 @@ export async function createSubscriptionCheckoutSession(userId: string, customer
                 email: customerEmail,
                 limit: 1,
             });
-            
+
             if (customers.data.length > 0) {
                 customerId = customers.data[0].id;
                 // Update existing customer metadata to ensure userId is set
@@ -220,7 +220,7 @@ export async function createSubscriptionCheckoutSession(userId: string, customer
 }
 
 // Legacy function for backward compatibility (now creates subscription)
-export async function createCheckoutSession(userId: string, resumeId: string) {
+export async function createCheckoutSession(userId: string, _resumeId: string) {
     return createSubscriptionCheckoutSession(userId);
 }
 
@@ -242,7 +242,7 @@ export function verifyWebhookSignature(payload: string | Buffer, signature: stri
 
         return event;
     } catch (error: any) {
-        stripeLogger.error('Webhook Verification', error, { 
+        stripeLogger.error('Webhook Verification', error, {
             signature: signature?.substring(0, 20) + '...',
             errorMessage: error.message,
             errorType: error.type,
@@ -270,7 +270,7 @@ export async function hasActiveSubscription(userId: string, supabaseClient: any)
         // Check if subscription is still within current period
         const now = new Date();
         const periodEnd = new Date(subscription.current_period_end);
-        
+
         return periodEnd > now && !subscription.cancel_at_period_end;
     } catch (error) {
         stripeLogger.error('Check Active Subscription', error, { userId });

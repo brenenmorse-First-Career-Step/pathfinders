@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -9,7 +9,7 @@ import Footer from '@/components/Footer';
 import { logger } from '@/lib/logger';
 
 export default function SignUpPage() {
-  const router = useRouter();
+
   const { signUp } = useAuth();
 
   const [formData, setFormData] = useState({
