@@ -94,15 +94,15 @@ export function LiveResumePreview({
             {/* Content */}
             <div className="relative z-10">
                 {/* Header - Centered */}
-                <div className="text-center mb-4 pb-4">
+                <div className="text-center mb-4 pb-4 w-full overflow-hidden">
 
-                    <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide mb-2">
+                    <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide mb-2 break-all sm:break-words">
                         {fullName || 'YOUR NAME'}
                     </h1>
                     {headline && (
-                        <p className="text-sm font-semibold text-gray-700 mb-3">{headline}</p>
+                        <p className="text-sm font-semibold text-gray-700 mb-3 break-words">{headline}</p>
                     )}
-                    <div className="text-xs text-gray-600 flex justify-center items-center gap-2 flex-wrap">
+                    <div className="text-xs text-gray-600 flex justify-center items-center gap-2 flex-wrap break-all sm:break-words text-center">
                         {location && <span>{location}</span>}
                         {location && (email || phone || linkedin) && <span>|</span>}
                         {email && <span>{email}</span>}
