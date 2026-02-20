@@ -49,7 +49,7 @@ Create a detailed career roadmap including:
 4. A step-by-step plan (EXACTLY 7 steps, no more, no less). For each step:
    - Step number
    - Title (MAXIMUM 2 WORDS, e.g., "MASTER REACT" or "LEARN PYTHON")
-   - Detailed description (KEEP IT SHORT, 5-7 words maximum)
+   - Detailed description (Write a short sentence of approx 120-150 characters)
    - 1-3 relevant hashtags
 5. Estimated learning timeline (e.g., "6-12 months" or "1-2 years")
 6. Suggested starter projects to build experience (list 3-5 projects)
@@ -480,12 +480,12 @@ async function generateMilestoneRoadmapImage(
     const availableWidth = width - (paddingX * 2);
     const gap = (availableWidth - totalCardsWidth) / 6;
 
-    const cardY = 250;
-    const cardHeight = 550;
+    const cardY = 120; // Lowered slightly, plenty of room below
+    const cardHeight = 480; // Shorter card, supports 150 chars perfectly
     const circleRadius = 50;
 
     // Timeline positioning
-    const timelineY = cardY + cardHeight + 80;
+    const timelineY = cardY + cardHeight + 80; // 120 + 480 + 80 = 680 (Fits in the 800px view area)
 
     // Card SVG Path (rectangle with pointed bottom)
     const cardPath = `M 0 0 L ${cardWidth} 0 L ${cardWidth} ${cardHeight - 40} L ${cardWidth / 2} ${cardHeight} L 0 ${cardHeight - 40} Z`;
@@ -494,12 +494,12 @@ async function generateMilestoneRoadmapImage(
         (
             <div
                 style={{
-                    width: '100%',
-                    height: '100%',
+                    width: '1792px',
+                    height: '1024px',
                     display: 'flex',
                     flexDirection: 'column',
                     backgroundColor: '#F4F7FB', // Light blue/gray background from design
-                    padding: '60px 80px',
+                    paddingTop: '60px',
                 }}
             >
                 {/* Header Section */}
@@ -507,7 +507,7 @@ async function generateMilestoneRoadmapImage(
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
-                        marginBottom: '20px',
+                        marginBottom: '40px',
                     }}
                 >
                     <h1
@@ -518,6 +518,7 @@ async function generateMilestoneRoadmapImage(
                             textAlign: 'center',
                             display: 'flex',
                             letterSpacing: '1px',
+                            margin: 0,
                         }}
                     >
                         Milestone Roadmap
@@ -528,7 +529,7 @@ async function generateMilestoneRoadmapImage(
                 <div
                     style={{
                         position: 'relative',
-                        width: '100%',
+                        width: '1792px',
                         flex: 1,
                         display: 'flex',
                     }}
@@ -539,10 +540,10 @@ async function generateMilestoneRoadmapImage(
                             position: 'absolute',
                             top: 0,
                             left: 0,
-                            width: '100%',
-                            height: '100%',
+                            width: '1792px',
+                            height: '800px',
                         }}
-                        viewBox={`0 0 ${width} 800`}
+                        viewBox={`0 0 1792 800`}
                     >
                         {/* 1. Timeline segments (behind dots) */}
                         {displaySteps.map((_, index) => {
