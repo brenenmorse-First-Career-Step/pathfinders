@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/layout";
-import { Button } from "@/components/ui";
+import { Button, ProgressBar } from "@/components/ui";
 import { useProfile } from "@/contexts/ProfileContext";
 import { LiveResumePreview } from "@/components/LiveResumePreview";
 
@@ -127,10 +127,29 @@ export default function ReviewPage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-soft-sky/30 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-soft-sky/30 to-white flex flex-col">
       <Header showBack onBack={() => router.push("/builder/step-6")} minimal />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      {/* Progress Bar */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 sticky top-[73px] z-40">
+        <div className="max-w-7xl mx-auto lg:w-[80%] overflow-hidden">
+          <ProgressBar
+            currentStep={7}
+            totalSteps={7}
+            stepLabels={[
+              "Basics",
+              "Headline",
+              "About",
+              "Experience",
+              "Skills",
+              "Photo",
+              "Review/Pay",
+            ]}
+          />
+        </div>
+      </div>
+
+      <main className="flex-1 w-full max-w-7xl mx-auto lg:w-[80%] px-4 py-6">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="w-16 h-16 bg-step-green rounded-full flex items-center justify-center mx-auto mb-4">

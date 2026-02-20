@@ -18,7 +18,7 @@ interface BuilderLayoutProps {
 export function BuilderLayout({
   children,
   currentStep,
-  totalSteps = 6,
+  totalSteps = 7,
   stepLabels = [
     "Basics",
     "Headline",
@@ -26,6 +26,7 @@ export function BuilderLayout({
     "Experience",
     "Skills",
     "Photo",
+    "Review/Pay",
   ],
   title,
   subtitle,
@@ -38,7 +39,7 @@ export function BuilderLayout({
 
       {/* Progress Bar */}
       {showProgress && (
-        <div className="bg-white border-b border-gray-100 px-4 py-3">
+        <div className="bg-white border-b border-gray-100 px-4 py-3 sticky top-[73px] z-40">
           <div className="max-w-7xl mx-auto lg:w-[80%] overflow-hidden">
             <ProgressBar
               currentStep={currentStep}
