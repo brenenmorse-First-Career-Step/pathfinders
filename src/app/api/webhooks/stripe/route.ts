@@ -64,6 +64,15 @@ async function createResumeForSubscription(
             .select()
             .single();
 
+        // Clean up any existing drafts now that a paid resume is created
+        if (!resumeError) {
+            await supabase
+                .from('resumes')
+                .delete()
+                .eq('user_id', userId)
+                .eq('status', 'draft');
+        }
+
         if (resumeError) {
             paymentLogger.error('Failed to create resume for subscription', {
                 error: resumeError,
@@ -415,6 +424,15 @@ export async function POST(request: NextRequest) {
                         })
                         .select()
                         .single();
+
+                    // Clean up any existing drafts now that a paid resume is created
+                    if (!resumeError) {
+                        await supabase
+                            .from('resumes')
+                            .delete()
+                            .eq('user_id', userId)
+                            .eq('status', 'draft');
+                    }
 
                     if (resumeError) {
                         paymentLogger.error('Failed to create resume record', {

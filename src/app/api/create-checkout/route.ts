@@ -109,6 +109,15 @@ export async function POST(_request: NextRequest) {
                 .select()
                 .single();
 
+            // Clean up any existing drafts now that a paid resume is created
+            if (!resumeError) {
+                await adminSupabase
+                    .from('resumes')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('status', 'draft');
+            }
+
             if (resumeError) {
                 console.error('Failed to create resume:', resumeError);
                 console.error('Resume error details:', {
