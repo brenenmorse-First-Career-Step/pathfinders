@@ -174,6 +174,7 @@ export default function Step3Page() {
                 placeholder="Write about yourself, your accomplishments, and your goals..."
                 rows={8}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-career-blue focus:outline-none resize-none"
+                maxLength={2000}
               />
               {errors.generated && (
                 <p className="text-xs text-red-500">{errors.generated}</p>

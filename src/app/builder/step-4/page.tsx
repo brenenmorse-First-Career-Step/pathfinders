@@ -279,6 +279,7 @@ export default function Step4Page() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   error={errors.title}
+                  maxLength={100}
                 />
 
                 <Input
@@ -287,6 +288,7 @@ export default function Step4Page() {
                   value={formData.organization}
                   onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                   error={errors.organization}
+                  maxLength={100}
                 />
 
                 <div className="grid grid-cols-2 gap-3">
@@ -325,6 +327,8 @@ export default function Step4Page() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   error={errors.description}
                   className="min-h-[120px]"
+                  maxLength={1000}
+                  showCount
                 />
 
                 <Button
@@ -361,18 +365,21 @@ export default function Step4Page() {
                   placeholder="e.g., First Aid Certified"
                   value={certForm.name}
                   onChange={(e) => setCertForm({ ...certForm, name: e.target.value })}
+                  maxLength={100}
                 />
                 <Input
                   label="Issuer (Optional)"
                   placeholder="e.g., Red Cross"
                   value={certForm.issuer}
                   onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })}
+                  maxLength={100}
                 />
                 <Input
                   label="Date Issued (Optional)"
                   placeholder="e.g., 2024"
                   value={certForm.dateIssued}
                   onChange={(e) => setCertForm({ ...certForm, dateIssued: e.target.value })}
+                  maxLength={50}
                 />
                 <Button onClick={handleAddCert} variant="outline" size="sm">
                   + Add Certification
