@@ -12,7 +12,7 @@ import { useProfile } from '@/contexts/ProfileContext';
 interface Resume {
     id: string;
     title: string;
-    status: 'paid';
+    status: 'paid' | 'draft';
     pdf_url: string | null;
     shareable_link: string | null;
     linkedin_content: string | null;
@@ -57,7 +57,7 @@ export default function ResumesPage() {
                 .from('resumes')
                 .select('*')
                 .eq('user_id', user.id)
-                .eq('status', 'paid')
+                .in('status', ['paid', 'draft'])
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -190,8 +190,7 @@ export default function ResumesPage() {
         }
     };
 
-    // All resumes shown are paid, so we can simplify status display
-
+    // We now show both 'paid' and 'draft' statuses
     if (loading) {
         return (
             <div className="p-8">
@@ -273,9 +272,15 @@ export default function ResumesPage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                                             <h3 className="text-xl font-bold text-charcoal">{resume.title}</h3>
-                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
-                                                {resume.pdf_url ? 'Ready to Download' : 'Generating PDF...'}
-                                            </span>
+                                            {resume.status === 'draft' ? (
+                                                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                                                    Draft
+                                                </span>
+                                            ) : (
+                                                <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
+                                                    {resume.pdf_url ? 'Ready to Download' : 'Generating PDF...'}
+                                                </span>
+                                            )}
                                             <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
                                                 v{resume.version || 1}
                                             </span>
@@ -291,56 +296,67 @@ export default function ResumesPage() {
                                     </div>
 
                                     <div className="flex items-center gap-3 flex-wrap">
-                                        {resume.pdf_url ? (
+                                        {resume.status === 'draft' ? (
+                                            <Link
+                                                href="/builder/review"
+                                                className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
+                                            >
+                                                Continue Editing
+                                            </Link>
+                                        ) : (
                                             <>
-                                                <a
-                                                    href={resume.pdf_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
-                                                >
-                                                    Download PDF
-                                                </a>
-                                                {resume.shareable_link && (
-                                                    <button
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(
-                                                                `${window.location.origin}/resume/${resume.shareable_link}`
-                                                            );
-                                                            alert('Shareable link copied to clipboard!');
-                                                        }}
-                                                        className="px-4 py-2 border-2 border-career-blue text-career-blue font-medium rounded-lg hover:bg-soft-sky transition-colors"
+                                                {resume.pdf_url ? (
+                                                    <>
+                                                        <a
+                                                            href={resume.pdf_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
+                                                        >
+                                                            Download PDF
+                                                        </a>
+                                                        {resume.shareable_link && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(
+                                                                        `${window.location.origin}/resume/${resume.shareable_link}`
+                                                                    );
+                                                                    alert('Shareable link copied to clipboard!');
+                                                                }}
+                                                                className="px-4 py-2 border-2 border-career-blue text-career-blue font-medium rounded-lg hover:bg-soft-sky transition-colors"
+                                                            >
+                                                                Copy Link
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-gray-600">
+                                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-career-blue"></div>
+                                                        <span className="text-sm">Generating your PDF...</span>
+                                                    </div>
+                                                )}
+                                                {resume.linkedin_content ? (
+                                                    <Link
+                                                        href={`/dashboard/resumes/${resume.id}/linkedin`}
+                                                        className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex items-center gap-2"
                                                     >
-                                                        Copy Link
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                                                        </svg>
+                                                        View LinkedIn Content
+                                                    </Link>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleGenerateLinkedIn(resume.id)}
+                                                        className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex items-center gap-2"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                                                        </svg>
+                                                        Generate LinkedIn Content
                                                     </button>
                                                 )}
                                             </>
-                                        ) : (
-                                            <div className="flex items-center gap-2 text-gray-600">
-                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-career-blue"></div>
-                                                <span className="text-sm">Generating your PDF...</span>
-                                            </div>
-                                        )}
-                                        {resume.linkedin_content ? (
-                                            <Link
-                                                href={`/dashboard/resumes/${resume.id}/linkedin`}
-                                                className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex items-center gap-2"
-                                            >
-                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                                                </svg>
-                                                View LinkedIn Content
-                                            </Link>
-                                        ) : (
-                                            <button
-                                                onClick={() => handleGenerateLinkedIn(resume.id)}
-                                                className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex items-center gap-2"
-                                            >
-                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                                                </svg>
-                                                Generate LinkedIn Content
-                                            </button>
                                         )}
                                         <button
                                             onClick={() => handleDeleteResume(resume.id)}

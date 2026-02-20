@@ -15,6 +15,7 @@ export default function ReviewPage() {
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
 
   const checkSubscriptionStatus = useCallback(async () => {
     if (!user) {
@@ -47,6 +48,34 @@ export default function ReviewPage() {
   useEffect(() => {
     checkSubscriptionStatus();
   }, [checkSubscriptionStatus]);
+
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    try {
+      const response = await fetch('/api/resumes/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save draft');
+      }
+
+      if (data.success) {
+        // Direct to dashboard
+        router.push('/dashboard/resumes');
+        return;
+      }
+
+      throw new Error('Unexpected response');
+    } catch (err) {
+      console.error('Save draft error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to save draft. Please try again.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
 
   const handleCompleteAndPay = async () => {
     // Subscribed users: create resume via API and redirect to success (never show checkout)
@@ -123,7 +152,7 @@ export default function ReviewPage() {
             Review Your Resume
           </h1>
           <p className="text-gray-600">
-            {hasActiveSubscription 
+            {hasActiveSubscription
               ? "Everything looks good? Create your resume now — it's included in your subscription."
               : "Everything looks good? Create your resume. You'll complete a one-time payment ($9/year) to unlock it."
             }
@@ -185,7 +214,7 @@ export default function ReviewPage() {
             </button>
 
             {/* Action Buttons */}
-            <div className="pt-4">
+            <div className="pt-4 flex flex-col gap-3">
               {hasActiveSubscription ? (
                 <>
                   <Button
@@ -196,6 +225,15 @@ export default function ReviewPage() {
                     disabled={isGenerating}
                   >
                     {isGenerating ? 'Creating resume...' : 'Create my resume'}
+                  </Button>
+                  <Button
+                    onClick={handleSaveDraft}
+                    size="lg"
+                    variant="outline"
+                    fullWidth
+                    disabled={isGenerating || isSavingDraft}
+                  >
+                    {isSavingDraft ? 'Saving...' : 'Save as Draft'}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
                     No payment needed — included in your subscription
@@ -208,9 +246,18 @@ export default function ReviewPage() {
                     size="lg"
                     fullWidth
                     className="bg-step-green hover:bg-step-green/90"
-                    disabled={isLoading}
+                    disabled={isLoading || isSavingDraft}
                   >
                     {isLoading ? 'Checking...' : 'Create my resume'}
+                  </Button>
+                  <Button
+                    onClick={handleSaveDraft}
+                    size="lg"
+                    variant="outline"
+                    fullWidth
+                    disabled={isLoading || isSavingDraft}
+                  >
+                    {isSavingDraft ? 'Saving...' : 'Save as Draft'}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
                     You&apos;ll go to payment ($9/year) to unlock this resume • Unlimited resumes for one year
