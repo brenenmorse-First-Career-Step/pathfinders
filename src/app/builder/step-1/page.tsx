@@ -210,7 +210,7 @@ export default function Step1Page() {
                   onChange={(e) => handleInputChange("location", e.target.value)}
                   placeholder="e.g., New York, NY"
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-career-blue focus:outline-none"
-                  maxLength={50}
+                  maxLength={20}
                 />
               </div>
 
@@ -225,7 +225,7 @@ export default function Step1Page() {
                   onChange={(e) => handleInputChange("linkedin", e.target.value)}
                   placeholder="e.g., linkedin.com/in/yourname"
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-career-blue focus:outline-none"
-                  maxLength={100}
+                  maxLength={50}
                 />
               </div>
 
@@ -243,7 +243,7 @@ export default function Step1Page() {
                     ? "border-red-500 bg-red-50"
                     : "border-gray-300 focus:border-career-blue"
                     }`}
-                  maxLength={100}
+                  maxLength={60}
                 />
                 {showErrors && !formData.highSchool.trim() && (
                   <p className="mt-1 text-sm text-red-600 font-medium">Please enter your school name.</p>
