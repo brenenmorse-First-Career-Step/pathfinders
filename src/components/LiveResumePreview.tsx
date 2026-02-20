@@ -85,7 +85,7 @@ export function LiveResumePreview({
         return (
             <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleEdit(stepPath); }}
-                className="absolute top-2 right-2 md:top-2 md:-right-2 p-1.5 bg-white border border-gray-200 hover:bg-career-blue hover:text-white text-gray-500 rounded-md transition-all opacity-100 md:opacity-0 group-hover:opacity-100 z-50 flex items-center gap-1.5 text-xs font-medium shadow-sm cursor-pointer"
+                className="absolute top-2 right-2 md:top-2 md:-right-2 p-1.5 bg-white border border-gray-200 hover:bg-career-blue hover:text-white text-gray-500 rounded-md transition-all opacity-100 z-50 flex items-center gap-1.5 text-xs font-medium shadow-sm cursor-pointer"
                 aria-label="Edit section"
                 title="Edit section"
             >
