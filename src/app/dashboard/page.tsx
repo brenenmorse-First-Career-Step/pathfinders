@@ -45,9 +45,9 @@ export default function DashboardPage() {
             <div className="grid md:grid-cols-2 gap-6 mb-8">
                 <Link
                     href="/builder/step-1"
-                    className="bg-gradient-to-br from-career-blue to-career-blue-dark text-white rounded-2xl p-8 hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
+                    className="bg-gradient-to-br from-career-blue to-career-blue-dark text-white rounded-2xl p-6 sm:p-8 hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <h2 className="text-2xl font-bold mb-2">Create New Resume</h2>
                             <p className="text-white/90">Start building your professional resume</p>
@@ -60,9 +60,9 @@ export default function DashboardPage() {
 
                 <Link
                     href="/dashboard/resumes"
-                    className="bg-white rounded-2xl p-8 border-2 border-gray-200 hover:border-career-blue transition-all duration-200"
+                    className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-career-blue transition-all duration-200"
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <h2 className="text-2xl font-bold text-charcoal mb-2">My Resumes</h2>
                             <p className="text-gray-600">View and manage your resumes</p>
@@ -73,8 +73,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Profile Information */}
-            <div className="bg-white rounded-2xl shadow-sm p-8">
-                <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <h2 className="text-2xl font-bold text-charcoal">Profile Information</h2>
                     <Link
                         href="/dashboard/profile"
@@ -87,25 +87,25 @@ export default function DashboardPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
-                        <p className="text-gray-900">{fullName}</p>
+                        <p className="text-gray-900 break-words">{fullName}</p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                        <p className="text-gray-900">{email}</p>
+                        <p className="text-gray-900 break-words">{email}</p>
                     </div>
 
                     {profile?.highSchool && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">High School</label>
-                            <p className="text-gray-900">{profile.highSchool}</p>
+                            <p className="text-gray-900 break-words">{profile.highSchool}</p>
                         </div>
                     )}
 
                     {profile?.graduationYear && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Graduation Year</label>
-                            <p className="text-gray-900">{profile.graduationYear}</p>
+                            <p className="text-gray-900 break-words">{profile.graduationYear}</p>
                         </div>
                     )}
 

@@ -97,14 +97,14 @@ export default function RoadmapsPage() {
         <div className="p-8">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-charcoal mb-2">My Career Roadmaps</h1>
                         <p className="text-gray-600">View and manage your personalized career roadmaps</p>
                     </div>
                     <Link
                         href="/career-roadmap"
-                        className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors"
+                        className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors text-center w-full sm:w-auto"
                     >
                         + Create New Roadmap
                     </Link>
@@ -144,9 +144,9 @@ export default function RoadmapsPage() {
                                 key={roadmap.id}
                                 className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow"
                             >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <h3 className="text-xl font-bold text-charcoal mb-2">
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                    <div className="flex-1 w-full">
+                                        <h3 className="text-xl font-bold text-charcoal mb-2 break-words">
                                             {roadmap.career_name}
                                         </h3>
                                         <p className="text-sm text-gray-600 mb-4">
@@ -164,16 +164,16 @@ export default function RoadmapsPage() {
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-3 flex-wrap ml-4">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                                         <button
                                             onClick={() => setSelectedRoadmap(roadmap)}
-                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
+                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors text-center"
                                         >
                                             View Details
                                         </button>
                                         <button
                                             onClick={() => handleDeleteRoadmap(roadmap.id)}
-                                            className="px-4 py-2 border-2 border-red-500 text-red-500 font-medium rounded-lg hover:bg-red-50 transition-colors"
+                                            className="px-4 py-2 border-2 border-red-500 text-red-500 font-medium rounded-lg hover:bg-red-50 transition-colors text-center"
                                         >
                                             Delete
                                         </button>
@@ -233,9 +233,9 @@ function RoadmapDetailView({
                         </svg>
                         Back to Roadmaps
                     </button>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-4xl font-bold text-charcoal mb-2">
+                            <h1 className="text-3xl sm:text-4xl font-bold text-charcoal mb-2 break-words">
                                 {roadmapData.careerName} Career Roadmap
                             </h1>
                             <p className="text-gray-600">
@@ -244,7 +244,7 @@ function RoadmapDetailView({
                         </div>
                         <button
                             onClick={() => onDelete(roadmap.id)}
-                            className="px-4 py-2 border-2 border-red-500 text-red-500 font-medium rounded-lg hover:bg-red-50 transition-colors"
+                            className="px-4 py-2 border-2 border-red-500 text-red-500 font-medium rounded-lg hover:bg-red-50 transition-colors text-center w-full sm:w-auto"
                         >
                             Delete
                         </button>
@@ -256,29 +256,29 @@ function RoadmapDetailView({
                     <div className="grid md:grid-cols-2 gap-6 mb-8">
                         {infographic_url && (
                             <div className="bg-white rounded-2xl shadow-sm p-6">
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4 gap-4">
                                     <h2 className="text-2xl font-bold text-charcoal">
                                         Career Roadmap Infographic
                                     </h2>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
                                         <button
                                             onClick={() => setViewImage(infographic_url)}
-                                            className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                            className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
                                         >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                             </svg>
-                                            View
+                                            <span className="whitespace-nowrap">View</span>
                                         </button>
                                         <button
                                             onClick={() => handleDownload(infographic_url, `${roadmapData.careerName}-Infographic.png`)}
-                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
+                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
                                         >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                             </svg>
-                                            Download
+                                            <span className="whitespace-nowrap">Download</span>
                                         </button>
                                     </div>
                                 </div>
@@ -296,29 +296,29 @@ function RoadmapDetailView({
                         )}
                         {milestone_roadmap_url && (
                             <div className="bg-white rounded-2xl shadow-sm p-6">
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4 gap-4">
                                     <h2 className="text-2xl font-bold text-charcoal">
                                         Milestone Roadmap
                                     </h2>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
                                         <button
                                             onClick={() => setViewImage(milestone_roadmap_url)}
-                                            className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                            className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
                                         >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                             </svg>
-                                            View
+                                            <span className="whitespace-nowrap">View</span>
                                         </button>
                                         <button
                                             onClick={() => handleDownload(milestone_roadmap_url, `${roadmapData.careerName}-Milestone-Roadmap.png`)}
-                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center gap-2"
+                                            className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
                                         >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                             </svg>
-                                            Download
+                                            <span className="whitespace-nowrap">Download</span>
                                         </button>
                                     </div>
                                 </div>
@@ -460,16 +460,16 @@ function RoadmapDetailView({
                 </div>
 
                 {/* Actions */}
-                <div className="mt-8 flex gap-4 justify-center">
+                <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                     <Link
                         href="/career-roadmap"
-                        className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors"
+                        className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors text-center w-full sm:w-auto"
                     >
                         Create Another Roadmap
                     </Link>
                     <button
                         onClick={onBack}
-                        className="px-6 py-3 border-2 border-career-blue text-career-blue font-semibold rounded-lg hover:bg-soft-sky transition-colors"
+                        className="px-6 py-3 border-2 border-career-blue text-career-blue font-semibold rounded-lg hover:bg-soft-sky transition-colors text-center w-full sm:w-auto"
                     >
                         Back to All Roadmaps
                     </button>

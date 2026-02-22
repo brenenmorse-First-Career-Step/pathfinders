@@ -212,14 +212,14 @@ export default function ResumesPage() {
                     </div>
                 )}
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-charcoal mb-2">My Resumes</h1>
                         <p className="text-gray-600">Manage and download your professional resumes</p>
                     </div>
                     <Link
                         href="/builder/step-1"
-                        className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors"
+                        className="px-6 py-3 bg-career-blue text-white font-semibold rounded-lg hover:bg-career-blue-dark transition-colors text-center w-full sm:w-auto"
                     >
                         + Create New Resume
                     </Link>
@@ -259,20 +259,20 @@ export default function ResumesPage() {
                                 key={resume.id}
                                 className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow"
                             >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                    <div className="flex-1 w-full">
                                         <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                            <h3 className="text-xl font-bold text-charcoal">{resume.title}</h3>
+                                            <h3 className="text-xl font-bold text-charcoal break-words">{resume.title}</h3>
                                             {resume.status === 'draft' ? (
-                                                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                                                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 whitespace-nowrap">
                                                     Draft
                                                 </span>
                                             ) : (
-                                                <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
+                                                <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700 whitespace-nowrap">
                                                     Ready to Download
                                                 </span>
                                             )}
-                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700 whitespace-nowrap">
                                                 v{resume.version || 1}
                                             </span>
                                         </div>
@@ -286,11 +286,11 @@ export default function ResumesPage() {
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-3 flex-wrap">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                                         {resume.status === 'draft' ? (
                                             <Link
                                                 href="/builder/review"
-                                                className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
+                                                className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors text-center"
                                             >
                                                 Continue Editing
                                             </Link>
@@ -305,7 +305,7 @@ export default function ResumesPage() {
                                                                 alert('Shareable link not found.');
                                                             }
                                                         }}
-                                                        className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors"
+                                                        className="px-4 py-2 bg-career-blue text-white font-medium rounded-lg hover:bg-career-blue-dark transition-colors text-center"
                                                     >
                                                         Download PDF
                                                     </button>
@@ -317,7 +317,7 @@ export default function ResumesPage() {
                                                                 );
                                                                 alert('Shareable link copied to clipboard!');
                                                             }}
-                                                            className="px-4 py-2 border-2 border-career-blue text-career-blue font-medium rounded-lg hover:bg-soft-sky transition-colors"
+                                                            className="px-4 py-2 border-2 border-career-blue text-career-blue font-medium rounded-lg hover:bg-soft-sky transition-colors text-center"
                                                         >
                                                             Copy Link
                                                         </button>
@@ -326,29 +326,29 @@ export default function ResumesPage() {
                                                 {resume.linkedin_content ? (
                                                     <Link
                                                         href={`/dashboard/resumes/${resume.id}/linkedin`}
-                                                        className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex items-center gap-2"
+                                                        className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex justify-center items-center gap-2"
                                                     >
-                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                                             <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                                                         </svg>
-                                                        View LinkedIn Content
+                                                        <span className="whitespace-nowrap">View LinkedIn Content</span>
                                                     </Link>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleGenerateLinkedIn()}
-                                                        className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex items-center gap-2"
+                                                        className="px-4 py-2 bg-[#0077B5] text-white font-medium rounded-lg hover:bg-[#006399] transition-colors flex justify-center items-center gap-2"
                                                     >
-                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                                             <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                                                         </svg>
-                                                        Generate LinkedIn Content
+                                                        <span className="whitespace-nowrap">Generate LinkedIn Content</span>
                                                     </button>
                                                 )}
                                             </>
                                         )}
                                         <button
                                             onClick={() => handleDeleteResume(resume.id)}
-                                            className="px-4 py-2 border-2 border-red-500 text-red-500 font-medium rounded-lg hover:bg-red-50 transition-colors"
+                                            className="px-4 py-2 border-2 border-red-500 text-red-500 font-medium rounded-lg hover:bg-red-50 transition-colors text-center"
                                         >
                                             Delete
                                         </button>

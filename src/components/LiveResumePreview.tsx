@@ -96,8 +96,8 @@ export function LiveResumePreview({
     };
 
     const containerClasses = variant === 'preview'
-        ? "relative bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200 max-w-3xl"
-        : "relative bg-white p-8 w-full h-full";
+        ? "relative bg-white rounded-xl shadow-lg p-4 md:p-8 border-2 border-gray-200 max-w-3xl w-full overflow-hidden"
+        : "relative bg-white p-4 md:p-8 w-full h-full overflow-hidden";
 
     return (
         <div className={containerClasses}>
@@ -125,20 +125,20 @@ export function LiveResumePreview({
                 {/* Header - Centered */}
                 <div className={`text-center mb-4 pb-4 w-full relative ${editable ? 'group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors' : ''}`}>
                     {renderEditButton('/builder/step-1')}
-                    <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide mb-2 break-all sm:break-words">
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 uppercase tracking-wide mb-2 break-all sm:break-words">
                         {fullName || 'YOUR NAME'}
                     </h1>
                     {headline && (
                         <p className="text-sm font-semibold text-gray-700 mb-3 break-words">{headline}</p>
                     )}
-                    <div className="text-xs text-gray-600 flex justify-center items-center gap-2 flex-wrap break-all sm:break-words text-center">
-                        {location && <span>{location}</span>}
+                    <div className="text-xs text-gray-600 flex justify-center items-center gap-2 flex-wrap text-center">
+                        {location && <span className="break-all sm:break-words">{location}</span>}
                         {location && (email || phone || linkedin) && <span>|</span>}
-                        {email && <span>{email}</span>}
+                        {email && <span className="break-all sm:break-words">{email}</span>}
                         {email && (phone || linkedin) && <span>|</span>}
-                        {phone && <span>{phone}</span>}
+                        {phone && <span className="break-all sm:break-words">{phone}</span>}
                         {phone && linkedin && <span>|</span>}
-                        {linkedin && <span>{linkedin}</span>}
+                        {linkedin && <span className="break-all sm:break-words">{linkedin}</span>}
                     </div>
                 </div>
 
@@ -165,14 +165,14 @@ export function LiveResumePreview({
                         <div className="space-y-4">
                             {experiences.map((exp, index) => (
                                 <div key={index}>
-                                    <div className="flex justify-between items-start mb-1">
-                                        <div>
-                                            <h3 className="text-sm font-bold text-gray-900">{exp.title}</h3>
-                                            <p className="text-xs text-gray-700">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start mb-1 gap-1 sm:gap-4">
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="text-sm font-bold text-gray-900 break-words">{exp.title}</h3>
+                                            <p className="text-xs text-gray-700 break-words">
                                                 {exp.organization}{exp.location ? `, ${exp.location}` : ''}
                                             </p>
                                         </div>
-                                        <p className="text-xs text-gray-600 whitespace-nowrap ml-4">
+                                        <p className="text-xs text-gray-600 whitespace-nowrap sm:ml-4 flex-shrink-0">
                                             {formatDate(exp.startDate)} – {exp.isCurrent ? 'Present' : formatDate(exp.endDate)}
                                         </p>
                                     </div>
@@ -201,12 +201,12 @@ export function LiveResumePreview({
                         <h2 className="text-base font-bold uppercase tracking-wide text-gray-900 border-b-2 border-gray-900 pb-1 mb-3">
                             EDUCATION
                         </h2>
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-xs text-gray-700">{highSchool}</p>
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-4">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs text-gray-700 break-words break-all sm:break-normal">{highSchool}</p>
                             </div>
                             {graduationYear && (
-                                <p className="text-xs text-gray-600 whitespace-nowrap ml-4">
+                                <p className="text-xs text-gray-600 whitespace-nowrap sm:ml-4 flex-shrink-0">
                                     Graduated: {graduationYear}
                                 </p>
                             )}
@@ -223,13 +223,13 @@ export function LiveResumePreview({
                         </h2>
                         <div className="space-y-2">
                             {certifications.map((cert, index) => (
-                                <div key={index} className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-xs font-semibold text-gray-900">{cert.name}</p>
-                                        {cert.issuer && <p className="text-xs text-gray-700">{cert.issuer}</p>}
+                                <div key={index} className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-4">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-semibold text-gray-900 break-words break-all sm:break-normal">{cert.name}</p>
+                                        {cert.issuer && <p className="text-xs text-gray-700 break-words break-all sm:break-normal">{cert.issuer}</p>}
                                     </div>
                                     {cert.dateIssued && (
-                                        <p className="text-xs text-gray-600 whitespace-nowrap ml-4">
+                                        <p className="text-xs text-gray-600 whitespace-nowrap sm:ml-4 flex-shrink-0">
                                             {cert.dateIssued}
                                         </p>
                                     )}
