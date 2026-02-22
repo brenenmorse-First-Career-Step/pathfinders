@@ -98,7 +98,7 @@ export default function DashboardPage() {
                     {profile?.highSchool && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">High School</label>
-                            <p className="text-gray-900 break-words">{profile.highSchool}</p>
+                            <p className="text-gray-900 break-words break-all">{profile.highSchool}</p>
                         </div>
                     )}
 
